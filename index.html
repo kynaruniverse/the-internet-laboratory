@@ -1,0 +1,1197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>The Internet Laboratory</title>
+  <style>
+    @font-face {
+      font-family: 'Nabla';
+      src: url('assets/fonts/nabla.ttf') format('truetype');
+      font-weight: 400;
+      font-style: normal;
+      font-display: swap;
+    }
+    @font-face {
+      font-family: 'Walter Turncoat';
+      src: url('assets/fonts/walter-turncoat.ttf') format('truetype');
+      font-weight: 400;
+      font-style: normal;
+      font-display: swap;
+    }
+    @font-face {
+      font-family: 'Pangolin';
+      src: url('assets/fonts/pangolin.ttf') format('truetype');
+      font-weight: 400;
+      font-style: normal;
+      font-display: swap;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:         #eef0f4;
+      --surface:    #e4e7ed;
+      --border:     #cdd1da;
+      --border-hi:  #b4bac7;
+      --text:       #0f1318;
+      --text-dim:   #7a8494;
+      --text-mid:   #4a5464;
+      --accent:     #006fff;
+      --accent-dim: rgba(0,111,255,0.07);
+      --accent-glow:rgba(0,111,255,0.16);
+      --font-display: "Nabla", system-ui;
+      --font-body: "Pangolin", cursive;
+      --font-sub: "Walter Turncoat", cursive;
+    }
+
+    html, body {
+      width: 100%; height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-body);
+      overflow-x: hidden;
+    }
+
+    /* ── Nabla blue palette override ── */
+    @font-palette-values --nabla-blue {
+      font-family: 'Nabla';
+      override-colors:
+        0 #a85c45,
+        1 #8a4733,
+        2 #b8913a,
+        3 #6b3a28,
+        4 #4a2418,
+        5 #f2dbc8,
+        6 #e8c49a;
+    }
+
+    /* ── Custom cursor ── */
+    #cursor {
+      display: none;
+      position: fixed;
+      width: 8px; height: 8px;
+      background: var(--accent);
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 9999;
+      transform: translate(-50%, -50%);
+      transition: transform 0.08s, width 0.15s, height 0.15s, opacity 0.15s;
+      mix-blend-mode: multiply;
+    }
+    #cursor.big {
+      width: 32px; height: 32px;
+      background: transparent;
+      border: 1px solid var(--accent);
+    }
+    @media (hover: hover) and (pointer: fine) {
+      #cursor { display: block; }
+      body { cursor: none; }
+    }
+
+    /* ── Noise overlay ── */
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.035'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 9000;
+      opacity: 0.6;
+    }
+
+    /* ── Scan line ── */
+    body::after {
+      content: '';
+      position: fixed; inset: 0;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0,0,0,0.015) 2px,
+        rgba(0,0,0,0.015) 4px
+      );
+      pointer-events: none;
+      z-index: 8999;
+    }
+
+    /* ════════════════════════════
+       ENTRANCE SCREEN
+    ════════════════════════════ */
+    #entrance {
+      position: fixed; inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      background: #d8dce6;
+      overflow: hidden;
+      transition: opacity 0.6s ease, transform 0.6s ease;
+    }
+    #entrance.exit {
+      opacity: 0;
+      transform: scale(1.04);
+      pointer-events: none;
+    }
+
+    .entrance-inner {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0;
+      opacity: 0;
+      animation: fadeUp 1s ease 0.3s forwards;
+    }
+
+    .status-bar {
+      font-family: var(--font-body);
+      font-size: 0.62rem;
+      font-weight: 300;
+      color: var(--text-dim);
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+    .status-dot {
+      width: 5px; height: 5px;
+      border-radius: 50%;
+      animation: colorCycle 6s steps(1) infinite;
+    }
+
+    .main-title {
+      font-family: var(--font-display);
+      font-size: clamp(2.2rem, 7vw, 5.5rem);
+      font-weight: 400;
+      letter-spacing: 0.01em;
+      line-height: 1.1;
+      text-align: center;
+      color: var(--text);
+      font-palette: --nabla-blue;
+      font-optical-sizing: auto;
+      font-variation-settings: "EDPT" 100, "EHLT" 12;
+      position: relative;
+    }
+    .main-title span {
+      font-palette: --nabla-blue;
+    }
+
+    .title-sub {
+      font-family: var(--font-body);
+      font-size: clamp(0.52rem, 2.2vw, 0.78rem);
+      font-weight: 400;
+      font-style: normal;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      margin-top: 1.1rem;
+      text-align: center;
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 0.4em 0.6em;
+    }
+    
+    .title-sub .seg { font-weight: 400; }
+    .title-sub .sep { color: var(--border-hi); font-weight: 300; }
+    .title-sub .seg-1 { color: #b8913a; }
+    .title-sub .seg-2 { color: #a85c45; }
+    .title-sub .seg-3 { color: #5a7a9f; }
+
+    .btn-warning {
+      font-family: var(--font-body);
+      font-size: 0.52rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: #a85c45;
+      opacity: 0.7;
+      margin-top: 2rem;
+      margin-bottom: 0.5rem;
+    }
+    .enter-btn {
+      margin-top: 0;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.9rem;
+      padding: 1rem 2.8rem;
+      max-width: 280px;
+      border: 2px solid #a85c45;
+      box-shadow:
+        0 0 0 4px rgba(168,92,69,0.22),
+        0 4px 0 #6b3a28,
+        0 6px 12px rgba(107,58,40,0.35);
+      background: #a85c45;
+      color: #fdf8f0;
+      outline: none;
+      font-family: var(--font-sub);
+      font-size: 0.9rem;
+      font-weight: 400;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      cursor: none;
+      position: relative;
+      overflow: hidden;
+      transition: box-shadow 0.08s, transform 0.08s, background 0.12s;
+    }
+    .enter-btn::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: repeating-linear-gradient(
+        45deg,
+        transparent,
+        transparent 6px,
+        rgba(253,248,240,0.06) 6px,
+        rgba(253,248,240,0.06) 12px
+      );
+      pointer-events: none;
+    }
+    .enter-btn:hover {
+      background: #b86b52;
+      box-shadow:
+        0 4px 0 #6b3a28,
+        0 8px 18px rgba(107,58,40,0.45);
+    }
+    .enter-btn:active {
+      transform: translateY(3px);
+      box-shadow:
+        0 1px 0 #6b3a28,
+        0 3px 8px rgba(107,58,40,0.3);
+    }
+    .enter-btn:focus-visible {
+      outline: 2px solid #f2dbc8;
+      outline-offset: 4px;
+    }
+    .enter-btn:hover .btn-arrow { transform: translateX(5px); }
+    .btn-arrow {
+      transition: transform 0.15s ease;
+      font-style: normal;
+    }
+
+    .coords {
+      position: fixed;
+      bottom: 1.5rem;
+      left: 0;
+      right: 0;
+      font-family: var(--font-body);
+      font-size: 0.58rem;
+      font-weight: 300;
+      color: var(--text-dim);
+      letter-spacing: 0.15em;
+      opacity: 0;
+      animation: fadeUp 1s ease 1.2s forwards;
+      text-align: center;
+      white-space: nowrap;
+    }
+
+    /* ════════════════════════════
+       MAIN LAB
+    ════════════════════════════ */
+    #lab {
+      min-height: 100vh;
+      opacity: 0;
+      transition: opacity 0.6s ease 0.2s;
+      padding: 0 0 6rem;
+    }
+    #lab.visible { opacity: 1; }
+
+    /* ── Top bar ── */
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1.25rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      background: rgba(238,240,244,0.92);
+      backdrop-filter: blur(12px);
+      z-index: 50;
+    }
+    .topbar-logo {
+      font-family: var(--font-sub);
+      font-size: 1rem;
+      font-weight: 400;
+      letter-spacing: 0.01em;
+      color: var(--text);
+    }
+    .topbar-logo span { color: #a85c45; }
+    .topbar-meta {
+      font-family: var(--font-body);
+      font-size: 0.58rem;
+      font-weight: 300;
+      color: var(--text-dim);
+      letter-spacing: 0.15em;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .topbar-dot {
+      width: 4px; height: 4px;
+      border-radius: 50%;
+      animation: colorCycle 6s steps(1) infinite;
+    }
+
+    /* ── Hero section ── */
+    .lab-hero {
+      padding: 3rem 1.5rem 2rem;
+      border-bottom: none;
+    }
+    .hero-divider {
+      position: relative;
+      height: 2px;
+      overflow: visible;
+      margin: 0;
+      z-index: 2;
+    }
+    .hero-divider svg {
+      position: absolute;
+      top: -20px;
+      left: 0;
+      width: 100%;
+      height: 40px;
+      overflow: visible;
+    }
+    .lab-hero-label {
+      font-family: var(--font-body);
+      font-size: 0.6rem;
+      font-weight: 300;
+      color: var(--text-dim);
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      margin-bottom: 1rem;
+    }
+    .lab-hero-heading {
+      font-family: var(--font-sub);
+      font-size: clamp(1.8rem, 6vw, 3.2rem);
+      font-weight: 400;
+      letter-spacing: 0.01em;
+      line-height: 1.2;
+      color: var(--text);
+      max-width: 18ch;
+    }
+    .lab-hero-heading em {
+      font-style: italic;
+      color: var(--text-mid);
+      font-weight: 400;
+    }
+    .lab-hero-desc {
+      margin-top: 1.25rem;
+      font-family: var(--font-body);
+      font-size: 0.85rem;
+      font-weight: 400;
+      color: var(--text-mid);
+      line-height: 1.7;
+      max-width: 42ch;
+    }
+
+    /* ── Particle canvas ── */
+    .hero-canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 0;
+    }
+    .lab-hero {
+      position: relative;
+    }
+    .lab-hero > *:not(canvas) {
+      position: relative;
+      z-index: 1;
+    }
+
+    .code-comment {
+      font-family: monospace;
+      font-size: 0.75em;
+      color: #a85c45;
+      font-style: normal;
+      letter-spacing: 0.03em;
+      background: rgba(168,92,69,0.09);
+      border: 1px solid rgba(168,92,69,0.22);
+      border-left: 3px solid #a85c45;
+      display: inline-block;
+      padding: 0.2em 0.6em 0.2em 0.5em;
+      border-radius: 3px;
+      line-height: 1.6;
+      margin: 0.15em 0;
+    }
+
+    /* ── Section header ── */
+    .section-header {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      padding: 1.5rem 1.5rem 0.75rem;
+      margin-top: 2rem;
+    }
+
+    .section-label {
+      font-family: var(--font-body);
+      font-size: 0.6rem;
+      font-weight: 400;
+      color: var(--text-dim);
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+    }
+    .section-count {
+      font-family: var(--font-body);
+      font-size: 0.58rem;
+      font-weight: 300;
+      color: var(--border-hi);
+    }
+
+    .card-color-1 { color: #b5717a; }
+    .card-color-2 { color: #6a8f6e; }
+    .card-color-3 { color: #5a7a9f; }
+    .card-color-4 { color: #b8913a; }
+    .card-color-5 { color: #a85c45; }
+    .card-color-6 { color: #5a7a5a; }
+
+    /* ── Portal grid ── */
+    .portal-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1px;
+      background: var(--border);
+      margin: 0 1.5rem;
+      border: 1px solid var(--border);
+    }
+    @media (min-width: 520px) {
+      .portal-grid { grid-template-columns: 1fr 1fr; }
+    }
+
+    .portal-card {
+      background: var(--bg);
+      padding: 1.25rem 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      cursor: none;
+      position: relative;
+      overflow: hidden;
+      transition: background 0.12s ease;
+      min-height: 9rem;
+      text-decoration: none;
+    }
+    .portal-card::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: var(--accent-dim);
+      opacity: 0;
+      transition: opacity 0.12s ease;
+    }
+    .portal-card:hover { background: var(--surface); }
+    .portal-card:hover::after { opacity: 1; }
+    .portal-card:hover .portal-arrow { opacity: 1; transform: translate(2px,-2px); }
+    .portal-card:hover .portal-name { filter: brightness(1.15); }
+
+    .portal-card.featured {
+      grid-column: 1 / -1;
+      min-height: 7rem;
+    }
+    @media (min-width: 520px) {
+      .portal-card.featured {
+        flex-direction: row;
+        align-items: flex-start;
+        justify-content: space-between;
+      }
+    }
+    a[href="#about"].portal-card.featured {
+      min-height: unset;
+    }
+
+    .portal-tag {
+      font-family: var(--font-body);
+      font-size: 0.52rem;
+      font-weight: 400;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+    }
+    .portal-name {
+      font-family: var(--font-sub);
+      font-size: 1.15rem;
+      font-weight: 400;
+      letter-spacing: 0.01em;
+      transition: filter 0.12s;
+      line-height: 1.2;
+    }
+    .portal-card.featured .portal-name {
+      font-size: 1.3rem;
+    }
+    .portal-desc {
+      font-family: var(--font-body);
+      font-size: 0.72rem;
+      font-weight: 400;
+      color: var(--text-dim);
+      line-height: 1.6;
+      margin-top: auto;
+    }
+    .portal-arrow {
+      font-size: 0.8rem;
+      color: var(--accent);
+      opacity: 0;
+      transition: opacity 0.12s, transform 0.12s;
+      align-self: flex-end;
+      flex-shrink: 0;
+    }
+    .portal-card.featured .portal-arrow {
+      align-self: flex-start;
+      margin-top: 0.2rem;
+    }
+    .portal-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      font-family: var(--font-body);
+      font-size: 0.52rem;
+      font-weight: 300;
+      color: var(--accent);
+      letter-spacing: 0.1em;
+      margin-top: auto;
+    }
+    .portal-status-dot {
+      width: 4px; height: 4px;
+      background: var(--accent);
+      border-radius: 50%;
+      animation: pulse 2.4s ease infinite;
+    }
+
+    .portal-card:hover .card-color-1 { filter: brightness(1.1); }
+    .portal-card:hover .card-color-2 { filter: brightness(1.1); }
+    .portal-card:hover .card-color-3 { filter: brightness(1.1); }
+    .portal-card:hover .card-color-4 { filter: brightness(1.1); }
+    .portal-card:hover .card-color-5 { filter: brightness(1.1); }
+    .portal-card:hover .card-color-6 { filter: brightness(1.1); }
+
+    .portal-card:nth-child(1) { border-top: 2px solid #b5717a; }
+    .portal-card:nth-child(2) { border-top: 2px solid #6a8f6e; }
+    .portal-card:nth-child(3) { border-top: 2px solid #5a7a9f; }
+    .portal-card:nth-child(4) { border-top: 2px solid #b8913a; }
+    .portal-card:nth-child(5) { border-top: 2px solid #a85c45; }
+    .portal-card:nth-child(6) { border-top: 2px solid #5a7a5a; }
+
+    /* ── Log section ── */
+    .log-section {
+      margin: 0.75rem 1.5rem 0;
+      border: 1px solid var(--border);
+      background: #1a1c20;
+      border-radius: 6px;
+      overflow: hidden;
+      max-height: 14rem;
+      overflow-y: auto;
+    }
+    .log-header {
+      padding: 0.6rem 1rem;
+      border-bottom: 1px solid #2a2d33;
+      font-family: monospace;
+      font-size: 0.6rem;
+      font-weight: 400;
+      color: #5a6a5a;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: #141618;
+    }
+    .log-entry {
+      padding: 0.65rem 1rem;
+      border-bottom: 1px solid #1f2226;
+      display: flex;
+      align-items: baseline;
+      gap: 1rem;
+      cursor: none;
+      transition: background 0.1s;
+    }
+    .log-entry:last-child { border-bottom: none; }
+    .log-entry:hover { background: #20242a; }
+    .log-time {
+      font-family: monospace;
+      font-size: 0.58rem;
+      color: #4a6a4a;
+      flex-shrink: 0;
+      letter-spacing: 0.05em;
+    }
+    .log-text {
+      font-family: monospace;
+      font-size: 0.64rem;
+      color: #8aaa8a;
+      line-height: 1.5;
+    }
+    .log-text strong {
+      color: #b8d4b8;
+      font-weight: 400;
+    }
+    .cursor-blink {
+      display: inline-block;
+      width: 7px;
+      height: 0.85em;
+      background: #4a6a4a;
+      vertical-align: text-bottom;
+      animation: pulse 1s steps(1) infinite;
+      margin-left: 2px;
+    }
+
+    /* ── About strip ── */
+    .about-strip {
+      margin: 0;
+      padding: 1.5rem 1.25rem 1.75rem;
+      will-change: transform;
+      background: #fdf8f0;
+      border: 1px solid #e0d5c0;
+      border-top: 3px solid #b8913a;
+      box-shadow: 8px 14px 32px rgba(0,0,0,0.22), 0 2px 6px rgba(0,0,0,0.1);
+      transform: rotate(-3deg);
+      transform-origin: top center;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      gap: 0.85rem;
+    }
+    .about-strip::before {
+      content: '';
+      position: absolute;
+      top: -8px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 24px;
+      height: 14px;
+      background: rgba(184,145,58,0.35);
+      border-radius: 2px;
+    }
+    .about-strip p {
+      font-family: var(--font-body);
+      font-size: 0.82rem;
+      font-weight: 400;
+      color: #4a3f2f;
+      line-height: 1.75;
+    }
+    .about-strip p strong {
+      color: #2a1f0f;
+      font-weight: 400;
+    }
+    .about-label {
+      font-family: var(--font-sub);
+      font-size: 1rem;
+      color: #b8913a;
+      margin-bottom: 0.25rem;
+    }
+
+    /* ── Footer ── */
+    .lab-footer {
+      margin: 2rem 1.5rem 0;
+      padding-top: 1.25rem;
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .footer-mark {
+      font-family: var(--font-sub);
+      font-size: 0.95rem;
+      font-weight: 400;
+      color: #a85c45;
+    }
+    .footer-mark span { color: #b8913a; }
+    .footer-meta {
+      font-family: var(--font-body);
+      font-size: 0.55rem;
+      font-weight: 300;
+      color: var(--border-hi);
+      letter-spacing: 0.1em;
+    }
+
+    /* ════════════════════════════
+       ANIMATIONS
+    ════════════════════════════ */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.3; }
+    }
+    @keyframes colorCycle {
+      0%    { background: #b5717a; box-shadow: 0 0 4px #b5717a; }
+      16%   { background: #6a8f6e; box-shadow: 0 0 4px #6a8f6e; }
+      33%   { background: #5a7a9f; box-shadow: 0 0 4px #5a7a9f; }
+      50%   { background: #b8913a; box-shadow: 0 0 4px #b8913a; }
+      66%   { background: #a85c45; box-shadow: 0 0 4px #a85c45; }
+      83%   { background: #5a7a5a; box-shadow: 0 0 4px #5a7a5a; }
+      100%  { background: #b5717a; box-shadow: 0 0 4px #b5717a; }
+    }
+    @keyframes swing {
+      0%   { transform: rotate(-3deg); }
+      10%  { transform: rotate(3.5deg); }
+      20%  { transform: rotate(-2.8deg); }
+      30%  { transform: rotate(2.2deg); }
+      40%  { transform: rotate(-1.6deg); }
+      50%  { transform: rotate(1.8deg); }
+      60%  { transform: rotate(0.8deg); }
+      70%  { transform: rotate(1.6deg); }
+      80%  { transform: rotate(1.2deg); }
+      90%  { transform: rotate(1.8deg); }
+      100% { transform: rotate(2deg); }
+    }
+    
+    @keyframes glitch {
+      0%   { clip-path: inset(0 0 98% 0); transform: translateX(-2px); }
+      10%  { clip-path: inset(30% 0 50% 0); transform: translateX(2px); }
+      20%  { clip-path: inset(70% 0 10% 0); transform: translateX(-1px); }
+      30%  { clip-path: inset(10% 0 80% 0); transform: translateX(0); }
+      40%  { clip-path: inset(50% 0 30% 0); transform: translateX(1px); }
+      100% { clip-path: inset(0 0 0 0); transform: translateX(0); }
+    }
+
+    /* ── Glitch effect on title ── */
+    .main-title::before,
+    .main-title::after {
+      content: attr(data-text);
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      color: var(--accent);
+      opacity: 0;
+    }
+    .main-title:hover::before {
+      opacity: 0.06;
+      animation: glitch 0.4s steps(1) forwards;
+      transform: translateX(-3px);
+    }
+    .main-title:hover::after {
+      opacity: 0.04;
+      animation: glitch 0.4s steps(1) 0.05s forwards;
+      transform: translateX(3px);
+      color: #99c2ff;
+    }
+
+    /* ── Stagger lab reveal ── */
+    #lab > * {
+      opacity: 0;
+      transform: translateY(10px);
+      transition: opacity 0.4s ease, transform 0.4s ease;
+    }
+    #lab.visible > * { opacity: 1; transform: translateY(0); }
+    #lab.visible > *:nth-child(1) { transition-delay: 0.05s; }
+    #lab.visible > *:nth-child(2) { transition-delay: 0.12s; }
+    #lab.visible > *:nth-child(3) { transition-delay: 0.19s; }
+    #lab.visible > *:nth-child(4) { transition-delay: 0.26s; }
+    #lab.visible > *:nth-child(5) { transition-delay: 0.33s; }
+    #lab.visible > *:nth-child(6) { transition-delay: 0.4s; }
+    #lab.visible > *:nth-child(7) { transition-delay: 0.47s; }
+    #lab.visible > .about-strip-wrapper {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .about-strip-wrapper {
+      margin: 2.5rem 2.5rem 1.5rem;
+      overflow: visible;
+    }
+
+    /* ── Desktop expansion ── */
+    .about-strip-wrapper {
+      overflow: hidden;
+    }
+    @media (max-width: 519px) {
+      .about-strip-wrapper {
+        margin: 2rem 1rem 1.5rem;
+      }
+      .about-strip:not(.swinging) {
+        transform: rotate(-2deg);
+      }
+    }
+    @media (min-width: 768px) {
+      .topbar { padding: 1.25rem 2.5rem; }
+      .lab-hero { padding: 4rem 2.5rem 2.5rem; }
+      .lab-hero-heading { font-size: clamp(2.5rem, 5vw, 4.5rem); max-width: 18ch; }
+      .section-header { padding: 2rem 2.5rem 1rem; }
+      .portal-grid {
+        margin: 0 2.5rem;
+        grid-template-columns: repeat(3, 1fr);
+      }
+      .portal-card.featured { grid-column: 1 / -1; }
+      .portal-card { padding: 1.5rem; min-height: 10rem; }
+      .portal-name { font-size: 1.05rem; }
+      .log-section, .about-strip-wrapper, .lab-footer { margin-left: 2.5rem; margin-right: 2.5rem; }
+    }
+
+    @media (min-width: 1100px) {
+      .portal-grid { grid-template-columns: repeat(4, 1fr); }
+      .portal-card.featured { grid-column: span 2; }
+    }
+  </style>
+</head>
+<body>
+
+  <div id="cursor"></div>
+
+  <!-- ══ ENTRANCE ══ -->
+  <div id="entrance">
+    <div class="entrance-inner">
+      <div class="status-bar">
+        <span class="status-dot"></span>
+        System online — all experiments running
+      </div>
+
+      <h1 class="main-title" data-text="The Internet Laboratory">
+        The Internet<br><span>Laboratory</span>
+      </h1>
+
+      <p class="title-sub">
+        <span class="seg seg-1">Est. now</span>
+        <span class="sep">·</span>
+        <span class="seg seg-2">Purpose: unclear</span>
+        <span class="sep">·</span>
+        <span class="seg seg-3">Status: building</span>
+      </p>
+
+      <p class="btn-warning">⚠ authorised personnel only</p>
+      <button class="enter-btn" id="enterBtn">
+        Enter the lab <span class="btn-arrow">→</span>
+      </button>
+    </div>
+
+    <div class="coords" id="coords">
+      <span id="coordText"></span>
+    </div>
+  </div>
+
+  <!-- ══ MAIN LAB ══ -->
+  <div id="lab">
+
+    <nav class="topbar">
+      <div class="topbar-logo">The Internet <span>Laboratory</span></div>
+      <div class="topbar-meta">
+        <span class="topbar-dot"></span>
+        <span id="labTime">--:--:--</span>
+      </div>
+    </nav>
+
+    <section class="lab-hero" id="labHero">
+      <canvas class="hero-canvas" id="heroCanvas"></canvas>
+      <p class="lab-hero-label">// entrance</p>
+      <h2 class="lab-hero-heading">Strange things.<br><span class="code-comment">built for no one</span><br>In particular.</h2>
+      <p class="lab-hero-desc">
+        A lone laboratory somewhere on the internet. Contains experiments, fake startups, tiny tools, and other constructions nobody asked for. Explore at your own pace.
+      </p>
+    </section>
+
+    <div class="section-header">
+      <span class="section-label">// sections</span>
+      <span class="section-count">05 areas</span>
+    </div>
+
+    <div class="portal-grid">
+
+      <a class="portal-card featured" href="#experiments">
+        <div>
+          <p class="portal-tag">01 &nbsp;·&nbsp; active</p>
+          <p class="portal-name card-color-1">Experiments</p>
+          <p class="portal-desc">Interactive concepts and unusual ideas. Some work. Some don't. All exist for unclear reasons.</p>
+          <p class="portal-status"><span class="portal-status-dot"></span> 0 running</p>
+        </div>
+        <p class="portal-arrow">↗</p>
+      </a>
+
+      <a class="portal-card" href="#fake-products">
+        <p class="portal-tag">02</p>
+        <p class="portal-name card-color-2">Fakes</p>
+        <p class="portal-desc">Startups that will never launch. Landing pages for things that don't exist.</p>
+        <p class="portal-arrow">↗</p>
+      </a>
+
+      <a class="portal-card" href="#tools">
+        <p class="portal-tag">03</p>
+        <p class="portal-name card-color-3">Tools</p>
+        <p class="portal-desc">Tiny, focused utilities. Built because the alternative was doing nothing.</p>
+        <p class="portal-arrow">↗</p>
+      </a>
+
+      <a class="portal-card" href="#design-lab">
+        <p class="portal-tag">04</p>
+        <p class="portal-name card-color-4">Design Lab</p>
+        <p class="portal-desc">Typography systems. Visual explorations. Interface experiments with no commercial application.</p>
+        <p class="portal-arrow">↗</p>
+      </a>
+
+      <a class="portal-card" href="#archives">
+        <p class="portal-tag">05</p>
+        <p class="portal-name card-color-5">Archives</p>
+        <p class="portal-desc">Unfinished things. Abandoned experiments. One-day builds left where they fell.</p>
+        <p class="portal-arrow">↗</p>
+      </a>
+    </div>
+
+    <div class="section-header" style="margin-top:1.5rem;">
+      <span class="section-label">// lab log</span>
+      <span class="section-count">recent activity</span>
+    </div>
+
+    <div class="log-section">
+      <div class="log-header">
+        <span class="topbar-dot"></span>
+        activity stream
+      </div>
+      <div class="log-entry">
+        <span class="log-time">now</span>
+        <span class="log-text"><strong>laboratory.init()</strong> — deployed.</span>
+      </div>
+      <div class="log-entry">
+        <span class="log-time">—</span>
+        <span class="log-text">Experiments appear here when built.</span>
+      </div>
+      <div class="log-entry">
+        <span class="log-time">—</span>
+        <span class="log-text">No schedule. <strong>No promises.</strong><span class="cursor-blink"></span></span>
+      </div>
+    </div>
+
+    <div class="about-strip-wrapper">
+      <div class="about-strip" id="about">
+        <p class="about-label">// about</p>
+        <p>
+          A personal internet laboratory operated by one person, from a phone, for reasons that made sense at the time and have not been reviewed since.
+        </p>
+        <p>
+          Contains experiments, fake startups, tiny tools, and other constructions nobody requested. Some are finished. Most are not. <strong>That is the intended state.</strong>
+        </p>
+        <p>
+          No roadmap. No investors. No adults supervising. Just curiosity and a decent internet connection.
+        </p>
+      </div>
+    </div>
+
+    <div class="lab-footer">
+      <div class="footer-mark">INLT<span>.</span></div>
+      <div class="footer-meta">always running &nbsp;·&nbsp; never done</div>
+    </div>
+
+  </div>
+
+  <script>
+    // ── DOM Elements
+    const canvas    = document.getElementById('heroCanvas');
+    const ctx       = canvas.getContext('2d');
+    const hero      = document.getElementById('labHero');
+    const cursor    = document.getElementById('cursor');
+    const coordText = document.getElementById('coordText');
+    const entrance  = document.getElementById('entrance');
+    const lab       = document.getElementById('lab');
+    const enterBtn  = document.getElementById('enterBtn');
+    const aboutStrip = document.getElementById('about');
+
+    // ── Particle config
+    const COLOURS = ['#a85c45','#b8913a','#c4703a','#9a4f38','#d4a445','#b06840'];
+    const G       = 2;
+    const SPAWN   = 2;
+    const MAX     = 4000;
+    const ZONE    = 50;
+    const GRAVITY = 0.15;
+    const FADE    = 0.004;
+
+    let floor   = [];
+    let falling = [];
+    let settled = [];
+    let targetX = 0;
+    let showerX = 0;
+    let W = 0, H = 0;
+
+    function initCanvas() {
+      if (!canvas || !hero) return;
+      W = hero.offsetWidth;
+      H = hero.offsetHeight;
+      canvas.width  = W;
+      canvas.height = H;
+      targetX = W / 2;
+      showerX = W / 2;
+      floor   = new Array(W).fill(H);
+      falling = [];
+      settled = [];
+    }
+    initCanvas();
+    window.addEventListener('resize', initCanvas);
+
+    // ── Cursor
+    document.addEventListener('mousemove', e => {
+      if (cursor) { cursor.style.left = e.clientX+'px'; cursor.style.top = e.clientY+'px'; }
+      if (hero) {
+        const r = hero.getBoundingClientRect();
+        if (e.clientX >= r.left && e.clientX <= r.right) targetX = e.clientX - r.left;
+      }
+    });
+    document.querySelectorAll('a, button').forEach(el => {
+      el.addEventListener('mouseenter', () => cursor && cursor.classList.add('big'));
+      el.addEventListener('mouseleave', () => cursor && cursor.classList.remove('big'));
+    });
+
+    // ── Device tilt
+    window.addEventListener('deviceorientation', e => {
+      if (e.gamma != null && W > 0) {
+        const norm = (Math.max(-25, Math.min(25, e.gamma)) + 25) / 50;
+        targetX = norm * W;
+      }
+    });
+
+    // ── Diagnostics
+    const diagnostics = [
+      'SPECIMEN COUNT: 0','EXPERIMENT INTEGRITY: QUESTIONABLE',
+      'CONTAINMENT STATUS: MOSTLY','ANOMALY DETECTED: IGNORED',
+      'COFFEE RESERVES: CRITICAL','PURPOSE ASSIGNED: NO',
+      'PEER REVIEW: PENDING (INDEFINITELY)','LAST KNOWN CAUSE: BOREDOM',
+      'FUNDING SOURCE: UNCLEAR','SAFETY PROTOCOLS: AWARE OF THEM',
+      'OPERATOR LOCATION: SOMEWHERE','EXIT STRATEGY: NOT APPLICABLE',
+    ];
+    let diagIndex = 0;
+    if (coordText) {
+      coordText.textContent = diagnostics[0];
+      coordText.style.transition = 'opacity 0.3s ease';
+    }
+    let coordInterval = setInterval(() => {
+      if (!coordText) return;
+      diagIndex = (diagIndex + 1) % diagnostics.length;
+      coordText.style.opacity = '0';
+      setTimeout(() => { coordText.textContent = diagnostics[diagIndex]; coordText.style.opacity = '1'; }, 300);
+    }, 2800);
+
+    // ── Enter lab
+    function enterLab() {
+      clearInterval(coordInterval);
+      if (entrance) entrance.classList.add('exit');
+      if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+        DeviceOrientationEvent.requestPermission().catch(console.error);
+      }
+      setTimeout(() => {
+        if (entrance) entrance.style.display = 'none';
+        document.body.style.overflow = 'auto';
+        if (lab) lab.classList.add('visible');
+        initCanvas();
+        tick();
+      }, 600);
+    }
+    if (enterBtn) enterBtn.addEventListener('click', enterLab);
+    document.addEventListener('keydown', e => {
+      if ((e.key === 'Enter' || e.key === ' ') && entrance && !entrance.classList.contains('exit')) enterLab();
+    });
+
+    // ── About swing
+    const swingObserver = new IntersectionObserver(entries => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting && aboutStrip && lab.classList.contains('visible')) {
+          aboutStrip.classList.add('swinging');
+          aboutStrip.style.animation = 'none';
+          void aboutStrip.offsetHeight;
+          aboutStrip.style.animation = 'swing 3s ease-out 0s 1 forwards';
+          swingObserver.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.3 });
+    const aboutWrapper = document.querySelector('.about-strip-wrapper');
+    if (aboutWrapper) swingObserver.observe(aboutWrapper);
+
+    // ── Spawn
+    function spawn() {
+      if (!entrance || !entrance.classList.contains('exit')) return;
+      showerX += (targetX - showerX) * 0.06;
+      const x = Math.max(0, Math.min(W - 1, showerX - ZONE/2 + Math.random() * ZONE));
+      falling.push({ x, y: 0, vy: 0.8 + Math.random() * 0.6,
+                     color: COLOURS[Math.floor(Math.random() * COLOURS.length)] });
+    }
+
+    // ── Tick
+    function tick() {
+      requestAnimationFrame(tick);
+      if (!ctx || W === 0) return;
+      ctx.clearRect(0, 0, W, H);
+
+      for (let s = 0; s < SPAWN; s++) spawn();
+
+      // Update falling grains
+      for (let i = falling.length - 1; i >= 0; i--) {
+        const g = falling[i];
+        g.vy += GRAVITY;
+        g.y  += g.vy;
+        g.x   = Math.max(0, Math.min(W - 1, g.x));
+        const col = Math.round(g.x);
+        const fl  = floor[col] - G;
+
+        if (g.y >= fl) {
+          const lCol  = Math.max(0, col - G);
+          const rCol  = Math.min(W - 1, col + G);
+          const canL  = floor[lCol] - G > fl + 1 && lCol !== col;
+          const canR  = floor[rCol] - G > fl + 1 && rCol !== col;
+
+          if (canL && canR) {
+            if (floor[lCol] > floor[rCol]) g.x -= G; else g.x += G;
+            g.vy *= 0.3;
+          } else if (canL) { g.x -= G; g.vy *= 0.3; }
+          else if (canR)   { g.x += G; g.vy *= 0.3; }
+          else {
+            // Settle
+            g.y = fl;
+            const sc = Math.round(g.x);
+            floor[sc] = Math.min(floor[sc], g.y);
+            if (sc > 0)   floor[sc-1] = Math.min(floor[sc-1], g.y + 1);
+            if (sc < W-1) floor[sc+1] = Math.min(floor[sc+1], g.y + 1);
+            settled.push({ x: g.x, y: g.y, color: g.color, alpha: 1, fading: false });
+            falling.splice(i, 1);
+            if (settled.length > MAX) settled[0].fading = true;
+          }
+        }
+      }
+
+      // Draw & fade settled — no glow, performance
+      ctx.shadowBlur = 0;
+      for (let i = settled.length - 1; i >= 0; i--) {
+        const s = settled[i];
+        if (s.fading) {
+          s.alpha -= FADE;
+          if (s.alpha <= 0) {
+            const sc = Math.round(s.x);
+            let nf = H;
+            for (const r of settled) {
+              if (!r.fading && Math.round(r.x) === sc) nf = Math.min(nf, r.y);
+            }
+            floor[sc] = nf;
+            settled.splice(i, 1);
+            continue;
+          }
+        }
+        ctx.globalAlpha = s.alpha;
+        ctx.fillStyle   = s.color;
+        ctx.fillRect(s.x, s.y, G, G);
+      }
+
+      // Draw falling — glow only here, few grains at a time
+      ctx.shadowBlur  = 5;
+      ctx.globalAlpha = 0.95;
+      for (const g of falling) {
+        ctx.fillStyle   = g.color;
+        ctx.shadowColor = g.color;
+        ctx.fillRect(g.x, g.y, G, G);
+      }
+      ctx.shadowBlur  = 0;
+      ctx.globalAlpha = 1;
+    }
+
+    // tick() is started inside enterLab() after the lab becomes visible
+
+    // ── Clock
+    function updateClock() {
+      const el = document.getElementById('labTime');
+      if (el) el.textContent = new Date().toLocaleTimeString('en-GB', { hour12: false });
+    }
+    updateClock();
+    setInterval(updateClock, 1000);
+
+    document.body.style.overflow = 'hidden';
+  </script>
+
+</body>
+</html>
