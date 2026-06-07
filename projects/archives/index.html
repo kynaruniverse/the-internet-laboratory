@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Archives — The Internet Laboratory</title>
+  <style>
+    @font-face {
+      font-family: 'Pangolin';
+      src: url('../../assets/fonts/pangolin.ttf') format('truetype');
+      font-display: swap;
+    }
+    @font-face {
+      font-family: 'Walter Turncoat';
+      src: url('../../assets/fonts/walter-turncoat.ttf') format('truetype');
+      font-display: swap;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:          #0d1210;
+      --surface:     #111815;
+      --border:      #1e2820;
+      --border-hi:   #2a3830;
+      --text:        #8aaa90;
+      --text-dim:    #4a6050;
+      --text-faint:  #2a3830;
+      --water:       rgba(40,90,70,0.15);
+      --mildew-1:    #3a5a40;
+      --mildew-2:    #2a4a35;
+      --rust:        #6a4030;
+      --font-body:   'Pangolin', cursive;
+      --font-sub:    'Walter Turncoat', cursive;
+    }
+
+    html, body {
+      min-height: 100%;
+      background: var(--bg);
+      font-family: var(--font-body);
+      overflow-x: hidden;
+      color: var(--text);
+    }
+
+    /* ── Water canvas — behind everything ── */
+    #water-canvas {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── Damp wall texture ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        repeating-linear-gradient(
+          92deg,
+          transparent,
+          transparent 40px,
+          rgba(40,90,70,0.03) 40px,
+          rgba(40,90,70,0.03) 41px
+        ),
+        repeating-linear-gradient(
+          0deg,
+          transparent,
+          transparent 60px,
+          rgba(40,90,70,0.02) 60px,
+          rgba(40,90,70,0.02) 61px
+        );
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── Back link ── */
+    .back-link {
+      position: fixed;
+      top: 1.25rem;
+      left: 1.25rem;
+      font-family: var(--font-body);
+      font-size: 0.6rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      text-decoration: none;
+      z-index: 100;
+      transition: color 0.15s;
+    }
+    .back-link:hover { color: var(--text); }
+
+    /* ── Page ── */
+    .page {
+      position: relative;
+      z-index: 2;
+      max-width: 680px;
+      margin: 0 auto;
+      padding: 4.5rem 1.25rem 8rem;
+    }
+
+    /* ── Header ── */
+    .page-header {
+      margin-bottom: 2.5rem;
+      opacity: 0;
+      animation: surfaceUp 0.8s ease 0.2s forwards;
+    }
+
+    .header-label {
+      font-family: monospace;
+      font-size: 0.5rem;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--text-faint);
+      margin-bottom: 0.6rem;
+    }
+
+    .header-title {
+      font-family: var(--font-sub);
+      font-size: clamp(1.8rem, 7vw, 3rem);
+      font-weight: 400;
+      line-height: 1.1;
+      color: var(--text);
+      /* water damage — bleed effect */
+      text-shadow:
+        0 0 18px rgba(40,90,70,0.4),
+        0 2px 8px rgba(0,0,0,0.6);
+      filter: blur(0.2px);
+    }
+
+    .header-sub {
+      font-size: 0.7rem;
+      color: var(--text-dim);
+      margin-top: 0.6rem;
+      line-height: 1.6;
+    }
+
+    /* ── Water line — tide mark ── */
+    .tide-mark {
+      position: relative;
+      height: 2px;
+      margin: 0 0 2rem;
+      opacity: 0;
+      animation: surfaceUp 0.6s ease 0.4s forwards;
+    }
+    .tide-mark::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(
+        90deg,
+        transparent,
+        var(--mildew-1) 15%,
+        var(--mildew-2) 50%,
+        var(--mildew-1) 85%,
+        transparent
+      );
+      opacity: 0.6;
+    }
+    /* stain above tide line */
+    .tide-mark::after {
+      content: '';
+      position: absolute;
+      top: -8px; left: 0; right: 0;
+      height: 8px;
+      background: linear-gradient(
+        0deg,
+        rgba(40,90,70,0.12),
+        transparent
+      );
+    }
+    .tide-label {
+      position: absolute;
+      right: 0;
+      top: 4px;
+      font-family: monospace;
+      font-size: 0.38rem;
+      color: var(--text-faint);
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+
+    /* ── Archive shelf ── */
+    .shelf {
+      position: relative;
+      margin-bottom: 0.5rem;
+    }
+
+    /* shelf board above items */
+    .shelf-board {
+      height: 8px;
+      background: linear-gradient(
+        180deg,
+        #2a3828 0%,
+        #1e2820 60%,
+        #161e18 100%
+      );
+      border: 1px solid var(--border-hi);
+      box-shadow:
+        0 3px 12px rgba(0,0,0,0.5),
+        inset 0 1px 0 rgba(255,255,255,0.04);
+      margin-bottom: 0;
+    }
+
+    /* ── Archive item ── */
+    .archive-item {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-top: none;
+      padding: 1rem 1rem 0.9rem;
+      display: flex;
+      gap: 0.9rem;
+      align-items: flex-start;
+      position: relative;
+      overflow: hidden;
+      opacity: 0;
+      animation: surfaceUp 0.6s ease forwards;
+      text-decoration: none;
+      color: inherit;
+      transition: background 0.15s;
+    }
+    .archive-item:hover { background: #151e17; }
+
+    .archive-item:nth-child(1) { animation-delay: 0.5s; }
+    .archive-item:nth-child(2) { animation-delay: 0.65s; }
+    .archive-item:nth-child(3) { animation-delay: 0.8s; }
+    .archive-item:nth-child(4) { animation-delay: 0.95s; }
+    .archive-item:nth-child(5) { animation-delay: 1.1s; }
+    .archive-item:nth-child(6) { animation-delay: 1.25s; }
+
+    /* water stain overlay per item */
+    .archive-item::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0;
+    }
+    .archive-item:nth-child(odd)::before {
+      background: radial-gradient(
+        ellipse at 80% 50%,
+        rgba(40,90,70,0.06) 0%,
+        transparent 70%
+      );
+      opacity: 1;
+    }
+    .archive-item:nth-child(even)::before {
+      background: radial-gradient(
+        ellipse at 20% 50%,
+        rgba(40,90,70,0.05) 0%,
+        transparent 70%
+      );
+      opacity: 1;
+    }
+
+    /* ── Condition indicator ── */
+    .condition {
+      flex-shrink: 0;
+      width: 36px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.3rem;
+      padding-top: 0.1rem;
+    }
+
+    .condition-icon {
+      font-size: 1.1rem;
+      line-height: 1;
+      filter: saturate(0.4) brightness(0.7);
+    }
+
+    .condition-label {
+      font-family: monospace;
+      font-size: 0.36rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-faint);
+      text-align: center;
+      line-height: 1.3;
+    }
+
+    /* ── Item content ── */
+    .item-content { flex: 1; }
+
+    .item-id {
+      font-family: monospace;
+      font-size: 0.44rem;
+      letter-spacing: 0.18em;
+      color: var(--text-faint);
+      text-transform: uppercase;
+      margin-bottom: 0.35rem;
+    }
+
+    .item-title {
+      font-family: var(--font-sub);
+      font-size: 0.95rem;
+      color: var(--text);
+      line-height: 1.2;
+      margin-bottom: 0.3rem;
+    }
+
+    /* water damage on some titles */
+    .archive-item:nth-child(3) .item-title,
+    .archive-item:nth-child(5) .item-title {
+      opacity: 0.6;
+      filter: blur(0.3px);
+    }
+
+    .item-desc {
+      font-size: 0.62rem;
+      color: var(--text-dim);
+      line-height: 1.5;
+      margin-bottom: 0.5rem;
+    }
+
+    .item-tags {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      flex-wrap: wrap;
+    }
+
+    .item-tag {
+      font-family: monospace;
+      font-size: 0.4rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      padding: 0.15em 0.5em;
+      border: 1px solid var(--border-hi);
+      color: var(--text-faint);
+    }
+    .item-tag.salvaged  { border-color: var(--mildew-1); color: var(--mildew-1); }
+    .item-tag.lost      { border-color: var(--rust);     color: var(--rust); opacity: 0.7; }
+    .item-tag.wip       { border-color: var(--text-dim); color: var(--text-dim); }
+    .item-tag.abandoned {
+      border-color: var(--border-hi);
+      color: var(--text-faint);
+      text-decoration: line-through;
+    }
+
+    /* ── Water level indicator — right side ── */
+    .water-level {
+      position: fixed;
+      right: 1.2rem;
+      top: 0;
+      bottom: 0;
+      width: 3px;
+      z-index: 50;
+      pointer-events: none;
+      opacity: 0;
+      animation: surfaceUp 1s ease 1.5s forwards;
+    }
+    .water-level-fill {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: linear-gradient(
+        0deg,
+        rgba(40,90,70,0.5),
+        rgba(40,90,70,0.1)
+      );
+      animation: riseSlowly 8s ease 2s forwards;
+      height: 0%;
+    }
+    .water-level-mark {
+      position: absolute;
+      right: 6px;
+      font-family: monospace;
+      font-size: 0.36rem;
+      color: var(--text-faint);
+      letter-spacing: 0.1em;
+      transform: rotate(90deg);
+      transform-origin: right center;
+      white-space: nowrap;
+    }
+
+    /* ── Drip canvas ── */
+    #drip-canvas {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    /* ── Footer — salvage log ── */
+    .salvage-log {
+      margin-top: 2.5rem;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      opacity: 0;
+      animation: surfaceUp 0.6s ease 1.4s forwards;
+    }
+
+    .log-header {
+      padding: 0.5rem 0.85rem;
+      border-bottom: 1px solid var(--border);
+      font-family: monospace;
+      font-size: 0.46rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--text-faint);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .log-entry {
+      padding: 0.45rem 0.85rem;
+      border-bottom: 1px solid var(--border);
+      font-family: monospace;
+      font-size: 0.5rem;
+      color: var(--text-dim);
+      letter-spacing: 0.06em;
+      display: flex;
+      gap: 1rem;
+      align-items: baseline;
+    }
+    .log-entry:last-child { border-bottom: none; }
+    .log-time { color: var(--text-faint); flex-shrink: 0; }
+
+    /* ── Animations ── */
+    @keyframes surfaceUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes riseSlowly {
+      from { height: 0%; }
+      to   { height: 35%; }
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.3; }
+    }
+  </style>
+</head>
+<body>
+
+<canvas id="water-canvas"></canvas>
+<canvas id="drip-canvas"></canvas>
+
+<a class="back-link" href="../../index.html">← The Laboratory</a>
+
+<!-- Water level indicator -->
+<div class="water-level">
+  <div class="water-level-fill"></div>
+  <div class="water-level-mark" style="bottom: 38%">water line</div>
+</div>
+
+<div class="page">
+
+  <header class="page-header">
+    <p class="header-label">// archives &nbsp;·&nbsp; section 05</p>
+    <h1 class="header-title">Archives</h1>
+    <p class="header-sub">Unfinished things. Abandoned experiments. One-day builds left where they fell.</p>
+  </header>
+
+  <div class="tide-mark">
+    <span class="tide-label">high water mark</span>
+  </div>
+
+  <!-- Shelf -->
+  <div class="shelf">
+    <div class="shelf-board"></div>
+    <div id="archiveList"></div>
+  </div>
+
+  <!-- Salvage log -->
+  <div class="salvage-log">
+    <div class="log-header">
+      <span>// salvage log</span>
+      <span id="logCount">—</span>
+    </div>
+    <div class="log-entry">
+      <span class="log-time">—</span>
+      <span>basement discovered. contents: unclear.</span>
+    </div>
+    <div class="log-entry">
+      <span class="log-time">—</span>
+      <span>items catalogued. condition: variable.</span>
+    </div>
+    <div class="log-entry">
+      <span class="log-time">—</span>
+      <span>water level: rising. retrieval: ongoing.</span>
+    </div>
+    <div class="log-entry">
+      <span class="log-time">now</span>
+      <span>nothing new to report.<span style="display:inline-block;width:6px;height:0.8em;background:var(--text-faint);vertical-align:text-bottom;margin-left:3px;animation:pulse 1s steps(1) infinite;"></span></span>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ═══════════════════════════════════════════════
+//  ARCHIVE REGISTRY
+// ═══════════════════════════════════════════════
+const ARCHIVES = [
+  {
+    id:        'ARC-001',
+    icon:      '📄',
+    condition: 'salvaged',
+    title:     'Item 001',
+    desc:      'Something that was built. Stopped before it finished. Archived honestly.',
+    tags:      ['abandoned', 'section-05'],
+    slug:      null,
+  },
+  {
+    id:        'ARC-002',
+    icon:      '🗂️',
+    condition: 'wip',
+    title:     'Item 002',
+    desc:      'Still technically in progress. Definition of progress: flexible.',
+    tags:      ['wip', 'section-05'],
+    slug:      null,
+  },
+  {
+    id:        'ARC-003',
+    icon:      '📦',
+    condition: 'lost',
+    title:     'Item 003',
+    desc:      'A one-day build. The day ended. The build did not.',
+    tags:      ['abandoned', 'one-day'],
+    slug:      null,
+  },
+  {
+    id:        'ARC-004',
+    icon:      '📋',
+    condition: 'salvaged',
+    title:     'Item 004',
+    desc:      'Interesting failure. Kept for reasons that have not been examined.',
+    tags:      ['salvaged', 'section-05'],
+    slug:      null,
+  },
+  {
+    id:        'ARC-005',
+    icon:      '🗃️',
+    condition: 'lost',
+    title:     'Item 005',
+    desc:      'Found during an audit that was not planned. Filed under: unclear.',
+    tags:      ['lost', 'section-05'],
+    slug:      null,
+  },
+  {
+    id:        'ARC-006',
+    icon:      '📁',
+    condition: 'wip',
+    title:     'Item 006',
+    desc:      'Reserved for things that fail interestingly enough to keep.',
+    tags:      ['wip', 'section-05'],
+    slug:      null,
+  },
+];
+
+// ═══════════════════════════════════════════════
+//  RENDER ARCHIVE ITEMS
+// ═══════════════════════════════════════════════
+const list   = document.getElementById('archiveList');
+const logCount = document.getElementById('logCount');
+logCount.textContent = `${ARCHIVES.length} item${ARCHIVES.length !== 1 ? 's' : ''} on record`;
+
+ARCHIVES.forEach((item, i) => {
+  const el = document.createElement(item.slug ? 'a' : 'div');
+  if (item.slug) el.href = `./${item.slug}/index.html`;
+  el.className = 'archive-item';
+
+  el.innerHTML = `
+    <div class="condition">
+      <div class="condition-icon">${item.icon}</div>
+      <div class="condition-label">${item.condition}</div>
+    </div>
+    <div class="item-content">
+      <div class="item-id">${item.id}</div>
+      <div class="item-title">${item.title}</div>
+      <p class="item-desc">${item.desc}</p>
+      <div class="item-tags">
+        ${item.tags.map(t => `<span class="item-tag ${t}">${t}</span>`).join('')}
+        ${item.slug ? '<span class="item-tag salvaged">→ open</span>' : ''}
+      </div>
+    </div>
+  `;
+
+  list.appendChild(el);
+});
+
+// ═══════════════════════════════════════════════
+//  WATER CANVAS — ambient surface ripple
+// ═══════════════════════════════════════════════
+const waterCanvas = document.getElementById('water-canvas');
+const wCtx = waterCanvas.getContext('2d');
+let WW, WH;
+
+// Ripple system
+const ripples = [];
+let autoRippleTimer = 0;
+
+function initWater() {
+  WW = waterCanvas.width  = window.innerWidth;
+  WH = waterCanvas.height = window.innerHeight;
+}
+
+function spawnRipple(x, y, r) {
+  ripples.push({ x, y, r: r || 1, maxR: 40 + Math.random() * 60, alpha: 0.25, speed: 0.6 + Math.random() * 0.4 });
+}
+
+function drawWater() {
+  requestAnimationFrame(drawWater);
+  wCtx.clearRect(0, 0, WW, WH);
+
+  // Auto-spawn ambient ripples near the bottom
+  autoRippleTimer++;
+  if (autoRippleTimer > 90 + Math.random() * 120) {
+    autoRippleTimer = 0;
+    spawnRipple(
+      WW * 0.1 + Math.random() * WW * 0.8,
+      WH * 0.6 + Math.random() * WH * 0.35
+    );
+  }
+
+  // Draw ripples
+  for (let i = ripples.length - 1; i >= 0; i--) {
+    const rip = ripples[i];
+    rip.r     += rip.speed;
+    rip.alpha -= 0.004;
+    if (rip.alpha <= 0) { ripples.splice(i, 1); continue; }
+
+    wCtx.beginPath();
+    wCtx.ellipse(rip.x, rip.y, rip.r, rip.r * 0.35, 0, 0, Math.PI * 2);
+    wCtx.strokeStyle = `rgba(40,120,80,${rip.alpha})`;
+    wCtx.lineWidth   = 1;
+    wCtx.stroke();
+
+    // Second ring slightly behind
+    if (rip.r > 12) {
+      wCtx.beginPath();
+      wCtx.ellipse(rip.x, rip.y, rip.r * 0.65, rip.r * 0.65 * 0.35, 0, 0, Math.PI * 2);
+      wCtx.strokeStyle = `rgba(40,120,80,${rip.alpha * 0.4})`;
+      wCtx.lineWidth   = 0.5;
+      wCtx.stroke();
+    }
+  }
+}
+
+initWater();
+drawWater();
+
+// Touch/click spawns ripple
+waterCanvas.style.pointerEvents = 'none';
+document.addEventListener('click', e => {
+  spawnRipple(e.clientX, e.clientY, 2);
+});
+document.addEventListener('touchstart', e => {
+  Array.from(e.touches).forEach(t => spawnRipple(t.clientX, t.clientY, 2));
+}, { passive: true });
+
+// ═══════════════════════════════════════════════
+//  DRIP CANVAS
+// ═══════════════════════════════════════════════
+const dripCanvas = document.getElementById('drip-canvas');
+const dCtx = dripCanvas.getContext('2d');
+let DW, DH;
+const drips = [];
+
+function initDrips() {
+  DW = dripCanvas.width  = window.innerWidth;
+  DH = dripCanvas.height = window.innerHeight;
+  drips.length = 0;
+  // Spawn ceiling drip points
+  const count = Math.floor(DW / 80);
+  for (let i = 0; i < count; i++) {
+    drips.push(makeDrip());
+  }
+}
+
+function makeDrip() {
+  return {
+    x:       Math.random() * DW,
+    y:       0,
+    vy:      0,
+    size:    1.5 + Math.random() * 2,
+    speed:   0.4 + Math.random() * 0.8,
+    delay:   Math.random() * 400,
+    falling: false,
+    trail:   [],
+  };
+}
+
+function drawDrips() {
+  requestAnimationFrame(drawDrips);
+  dCtx.clearRect(0, 0, DW, DH);
+
+  for (const d of drips) {
+    if (d.delay > 0) { d.delay--; continue; }
+
+    if (!d.falling) {
+      // Grow the pending drop at ceiling
+      d.size += 0.008;
+      if (d.size > 4.5 + Math.random() * 2) {
+        d.falling = true;
+        d.vy = d.speed;
+      }
+      // Draw pending drop
+      dCtx.beginPath();
+      dCtx.arc(d.x, d.size * 2, d.size * 0.7, 0, Math.PI * 2);
+      dCtx.fillStyle = `rgba(40,100,70,0.18)`;
+      dCtx.fill();
+    } else {
+      // Falling
+      d.vy  += 0.04;
+      d.y   += d.vy;
+      d.trail.push({ x: d.x, y: d.y });
+      if (d.trail.length > 12) d.trail.shift();
+
+      // Draw trail
+      for (let t = 0; t < d.trail.length; t++) {
+        const pt = d.trail[t];
+        const a  = (t / d.trail.length) * 0.12;
+        dCtx.beginPath();
+        dCtx.arc(pt.x, pt.y, 0.8, 0, Math.PI * 2);
+        dCtx.fillStyle = `rgba(40,100,70,${a})`;
+        dCtx.fill();
+      }
+
+      // Draw drop
+      dCtx.beginPath();
+      dCtx.arc(d.x, d.y, d.size * 0.6, 0, Math.PI * 2);
+      dCtx.fillStyle = `rgba(40,100,70,0.22)`;
+      dCtx.fill();
+
+      // Splat on floor
+      if (d.y > DH * 0.85) {
+        // Spawn ripple at landing
+        spawnRipple(d.x, d.y, 1);
+        // Reset drip
+        Object.assign(d, makeDrip());
+        d.x = d.x + (Math.random() - 0.5) * 40;
+        if (d.x < 0) d.x = 0;
+        if (d.x > DW) d.x = DW;
+      }
+    }
+  }
+}
+
+initDrips();
+drawDrips();
+
+window.addEventListener('resize', () => { initWater(); initDrips(); });
+</script>
+</body>
+</html>
