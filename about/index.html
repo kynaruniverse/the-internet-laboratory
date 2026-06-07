@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>About — The Internet Laboratory</title>
+  <style>
+    @font-face {
+      font-family: 'Nabla';
+      src: url('../assets/fonts/nabla.ttf') format('truetype');
+      font-display: swap;
+    }
+    @font-face {
+      font-family: 'Walter Turncoat';
+      src: url('../assets/fonts/walter-turncoat.ttf') format('truetype');
+      font-display: swap;
+    }
+    @font-face {
+      font-family: 'Pangolin';
+      src: url('../assets/fonts/pangolin.ttf') format('truetype');
+      font-display: swap;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --wall:    #d8d4cc;
+      --paper:   #fdf8f0;
+      --ink:     #2a2318;
+      --ink-dim: #7a6f5a;
+      --ink-faint: #c8bfaa;
+      --tape:    rgba(255,235,150,0.72);
+      --shadow:  rgba(0,0,0,0.18);
+      --font-display: 'Nabla', system-ui;
+      --font-body: 'Pangolin', cursive;
+      --font-sub: 'Walter Turncoat', cursive;
+    }
+
+    html, body {
+      min-height: 100%;
+      width: 100%;
+      background: var(--wall);
+      font-family: var(--font-body);
+      overflow-x: hidden;
+    }
+
+    /* ── Wall texture ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        repeating-linear-gradient(
+          0deg,
+          transparent,
+          transparent 3px,
+          rgba(0,0,0,0.012) 3px,
+          rgba(0,0,0,0.012) 4px
+        ),
+        repeating-linear-gradient(
+          90deg,
+          transparent,
+          transparent 3px,
+          rgba(0,0,0,0.008) 3px,
+          rgba(0,0,0,0.008) 4px
+        );
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── Single bare bulb light from above ── */
+    body::after {
+      content: '';
+      position: fixed;
+      top: -40vh;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 120vw;
+      height: 120vh;
+      background: radial-gradient(
+        ellipse at 50% 0%,
+        rgba(255,248,220,0.22) 0%,
+        rgba(255,240,180,0.08) 35%,
+        transparent 70%
+      );
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── Back link ── */
+    .back-link {
+      position: fixed;
+      top: 1.25rem;
+      left: 1.25rem;
+      font-family: var(--font-body);
+      font-size: 0.6rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--ink-dim);
+      text-decoration: none;
+      z-index: 100;
+      transition: color 0.15s;
+      opacity: 0;
+      animation: fadeIn 0.5s ease 0.8s forwards;
+    }
+    .back-link:hover { color: var(--ink); }
+
+    /* ── Page layout — centred, single column ── */
+    .room {
+      position: relative;
+      z-index: 1;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 5rem 1.5rem 4rem;
+    }
+
+    /* ── The document ── */
+    .document {
+      position: relative;
+      background: var(--paper);
+      max-width: 540px;
+      width: 100%;
+      padding: 3rem 2.5rem 2.8rem;
+      box-shadow:
+        8px 12px 40px rgba(0,0,0,0.28),
+        0 2px 6px rgba(0,0,0,0.12),
+        inset 0 0 0 1px rgba(0,0,0,0.04);
+      transform: rotate(-0.6deg);
+      transform-origin: top center;
+      opacity: 0;
+      animation: documentDrop 0.7s cubic-bezier(0.22,1,0.36,1) 0.2s forwards;
+    }
+
+    /* left margin rule — like lined paper */
+    .document::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 2.8rem;
+      width: 1px;
+      background: rgba(184,145,58,0.25);
+    }
+
+    /* Tape strip — top centre */
+    .tape {
+      position: absolute;
+      top: -10px;
+      left: 50%;
+      transform: translateX(-50%) rotate(-1deg);
+      width: 80px;
+      height: 20px;
+      background: var(--tape);
+      border: 1px solid rgba(200,180,80,0.35);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+    }
+
+    /* Second tape — bottom left corner, like it's about to fall */
+    .tape-corner {
+      position: absolute;
+      bottom: -6px;
+      left: 1.2rem;
+      width: 48px;
+      height: 14px;
+      background: var(--tape);
+      border: 1px solid rgba(200,180,80,0.3);
+      transform: rotate(4deg);
+      box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    }
+
+    /* ── Document header ── */
+    .doc-header {
+      margin-bottom: 2rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid var(--ink-faint);
+    }
+
+    .doc-ref {
+      font-family: monospace;
+      font-size: 0.48rem;
+      color: var(--ink-faint);
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      margin-bottom: 0.6rem;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+    .doc-ref::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--ink-faint);
+      opacity: 0.4;
+    }
+
+    .doc-title {
+      font-family: var(--font-display);
+      font-size: clamp(1.4rem, 6vw, 2.2rem);
+      font-weight: 400;
+      color: var(--ink);
+      line-height: 1.1;
+      letter-spacing: 0.01em;
+
+      /* Nabla warm palette */
+      font-palette: --nabla-warm;
+    }
+
+    @font-palette-values --nabla-warm {
+      font-family: 'Nabla';
+      override-colors:
+        0 #a85c45,
+        1 #8a4733,
+        2 #b8913a,
+        3 #6b3a28,
+        4 #4a2418,
+        5 #f2dbc8,
+        6 #e8c49a;
+    }
+
+    .doc-subtitle {
+      font-family: var(--font-body);
+      font-size: 0.62rem;
+      color: var(--ink-dim);
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      margin-top: 0.5rem;
+    }
+
+    /* ── Body sections ── */
+    .doc-section {
+      margin-bottom: 1.6rem;
+    }
+
+    .doc-section-label {
+      font-family: var(--font-sub);
+      font-size: 0.78rem;
+      color: #b8913a;
+      margin-bottom: 0.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .doc-section-label::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: rgba(184,145,58,0.2);
+    }
+
+    .doc-body {
+      font-family: var(--font-body);
+      font-size: 0.82rem;
+      color: #3a3020;
+      line-height: 1.85;
+    }
+
+    .doc-body p + p {
+      margin-top: 0.85rem;
+    }
+
+    .doc-body strong {
+      color: var(--ink);
+      font-weight: 400;
+    }
+
+    /* inline monospace fragments */
+    .doc-body code {
+      font-family: monospace;
+      font-size: 0.72rem;
+      background: rgba(168,92,69,0.08);
+      border: 1px solid rgba(168,92,69,0.18);
+      padding: 0.1em 0.4em;
+      border-radius: 2px;
+      color: #a85c45;
+    }
+
+    /* ── Status line ── */
+    .doc-status {
+      margin-top: 2rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--ink-faint);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    .status-field {
+      font-family: monospace;
+      font-size: 0.48rem;
+      color: var(--ink-faint);
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+    }
+    .status-field span {
+      color: var(--ink-dim);
+      font-size: 0.52rem;
+    }
+
+    .status-dot-live {
+      display: inline-block;
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: #5a7a5a;
+      margin-right: 0.35rem;
+      animation: pulse 2.4s ease infinite;
+      vertical-align: middle;
+    }
+
+    /* ── Handwritten margin note ── */
+    .margin-note {
+      position: absolute;
+      right: -3.5rem;
+      top: 40%;
+      transform: rotate(90deg);
+      transform-origin: left center;
+      font-family: var(--font-sub);
+      font-size: 0.55rem;
+      color: rgba(168,92,69,0.45);
+      letter-spacing: 0.08em;
+      white-space: nowrap;
+      pointer-events: none;
+    }
+
+    @media (max-width: 680px) {
+      .margin-note { display: none; }
+      .document { padding: 2.5rem 1.5rem 2.2rem; }
+      .document::before { left: 1.8rem; }
+    }
+
+    /* ── Animations ── */
+    @keyframes documentDrop {
+      from {
+        opacity: 0;
+        transform: rotate(-0.6deg) translateY(-18px);
+      }
+      to {
+        opacity: 1;
+        transform: rotate(-0.6deg) translateY(0);
+      }
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to   { opacity: 1; }
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.3; }
+    }
+  </style>
+</head>
+<body>
+
+  <a class="back-link" href="../index.html">← The Laboratory</a>
+
+  <div class="room">
+    <div class="document">
+
+      <div class="tape"></div>
+      <div class="tape-corner"></div>
+      <div class="margin-note">filed under: reasons that made sense at the time</div>
+
+      <header class="doc-header">
+        <div class="doc-ref">INLT &nbsp;·&nbsp; DOC-001 &nbsp;·&nbsp; ABOUT</div>
+        <h1 class="doc-title">The Internet<br>Laboratory</h1>
+        <p class="doc-subtitle">Operator statement &nbsp;·&nbsp; version unknown</p>
+      </header>
+
+      <div class="doc-section">
+        <div class="doc-section-label">// what this is</div>
+        <div class="doc-body">
+          <p>
+            A personal internet laboratory. One person. One phone. No plan.
+          </p>
+          <p>
+            It contains <strong>experiments</strong>, <strong>fake startups</strong>, <strong>tiny tools</strong>, and other constructions nobody requested. Some are finished. Most are not. That is the intended state.
+          </p>
+          <p>
+            This is not a portfolio. It is not optimised for hiring. It does not have a roadmap or a target audience or a monetisation strategy. It exists because the alternative — not building things — seemed worse.
+          </p>
+        </div>
+      </div>
+
+      <div class="doc-section">
+        <div class="doc-section-label">// why it exists</div>
+        <div class="doc-body">
+          <p>
+            Boredom became curiosity. Curiosity became building. Building became identity.
+          </p>
+          <p>
+            The laboratory accumulates over time. Things are added when they exist. Things are left unfinished when they stop being interesting. Nothing is removed for tidiness. <strong>The mess is the record.</strong>
+          </p>
+        </div>
+      </div>
+
+      <div class="doc-section">
+        <div class="doc-section-label">// technical facts</div>
+        <div class="doc-body">
+          <p>
+            Built entirely on a phone. Deployed from bed. Written in <code>HTML</code>, <code>CSS</code>, and <code>JS</code> — no frameworks on the main site. Hosted on the open internet for reasons that have not been reviewed since.
+          </p>
+          <p>
+            Stack: <code>Spck Editor</code> → <code>GitHub</code> → <code>GitHub Actions</code> → somewhere it runs.
+          </p>
+        </div>
+      </div>
+
+      <div class="doc-section">
+        <div class="doc-section-label">// publishing standard</div>
+        <div class="doc-body">
+          <p>
+            There is none. Things ship when they exist. <strong>No schedule. No promises.</strong>
+          </p>
+        </div>
+      </div>
+
+      <div class="doc-status">
+        <div class="status-field">
+          operator
+          <span>one person</span>
+        </div>
+        <div class="status-field">
+          location
+          <span>somewhere</span>
+        </div>
+        <div class="status-field">
+          status
+          <span><span class="status-dot-live"></span>running</span>
+        </div>
+        <div class="status-field">
+          purpose
+          <span>unclear</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</body>
+</html>
