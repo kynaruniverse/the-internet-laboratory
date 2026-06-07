@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Universal Viewport Tester</title>
+
+<style>
+/* =========================
+   BASE
+========================= */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+html, body {
+    height: 100%;
+    overscroll-behavior: none;
+}
+
+body {
+    background-color: #0f0f11;
+    color: #f1f1f4;
+
+    display: grid;
+    grid-template-rows: auto 1fr;
+
+    height: 100vh;
+    height: 100dvh;
+
+    overflow: hidden;
+}
+
+/* touch UX */
+input, select, button {
+    touch-action: manipulation;
+}
+
+/* =========================
+   HEADER
+========================= */
+header {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: #16161a;
+    padding: 12px;
+    border-bottom: 1px solid #24242b;
+
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.input-row,
+.selector-row {
+    display: flex;
+    gap: 10px;
+    width: 100%;
+}
+
+.selector-row {
+    flex-wrap: wrap;
+}
+
+/* =========================
+   INPUTS
+========================= */
+input[type="url"] {
+    flex: 1;
+    min-width: 0;
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid #2a2a35;
+    background: #050506;
+    color: #fff;
+    font-size: 16px;
+    outline: none;
+}
+
+select {
+    flex: 1;
+    min-width: 0;
+    padding: 10px;
+    border-radius: 8px;
+    background: #24242b;
+    color: #fff;
+    border: 1px solid #343442;
+}
+
+/* =========================
+   BUTTONS
+========================= */
+.btn-primary {
+    padding: 0 16px;
+    min-height: 44px;
+    border: none;
+    border-radius: 8px;
+    background: #3884ff;
+    color: white;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.btn-secondary {
+    padding: 10px 14px;
+    min-height: 44px;
+    border-radius: 8px;
+    border: 1px solid #343442;
+    background: #24242b;
+    color: white;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+/* =========================
+   CONTROLS (NEW)
+========================= */
+.zoom-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    width: 100%;
+}
+
+#zoomSlider {
+    flex: 1;
+}
+
+#fitMode {
+    flex: 1;
+}
+
+/* =========================
+   CANVAS (GRID SAFE)
+========================= */
+.canvas {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 10px;
+    overflow: hidden;
+    background-image: radial-gradient(#24242b 1px, transparent 1px);
+    background-size: 16px 16px;
+}
+
+/* =========================
+   DEVICE WRAPPER
+========================= */
+.device-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    transform-origin: center;
+    transition: transform 0.15s ease;
+}
+
+/* =========================
+   LABEL
+========================= */
+.device-label {
+    font-size: 12px;
+    padding: 6px 10px;
+    border-radius: 20px;
+    margin-bottom: 10px;
+    background: #24242b;
+    color: #a3a3b3;
+    border: 1px solid #343442;
+    max-width: 90vw;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* =========================
+   FRAME
+========================= */
+.iframe-holder {
+    border: 6px solid #24242b;
+    border-radius: 16px;
+    background: white;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+    overflow: hidden;
+    transition: width 0.2s ease, height 0.2s ease;
+}
+
+iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+    display: block;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+    <div class="input-row">
+        <input id="urlInput" type="url" value="https://example.com">
+        <button class="btn-primary" id="goBtn">Go</button>
+    </div>
+
+    <div class="selector-row">
+        <select id="deviceSelect">
+            <option value="393,852" selected>iPhone 15 Pro</option>
+            <option value="360,800">Android</option>
+            <option value="768,1024">iPad</option>
+            <option value="1366,768">Laptop</option>
+            <option value="1920,1080">Desktop</option>
+        </select>
+
+        <button class="btn-secondary" id="rotateBtn">Rotate</button>
+    </div>
+
+    <div class="zoom-row">
+        <input type="range" id="zoomSlider" min="0.2" max="1.5" step="0.01" value="1">
+        <select id="fitMode">
+            <option value="auto">Auto Fit</option>
+            <option value="width">Fit Width</option>
+            <option value="height">Fit Height</option>
+            <option value="100">100%</option>
+        </select>
+    </div>
+</header>
+
+<main class="canvas">
+    <div class="device-container" id="deviceContainer">
+        <div class="device-label" id="deviceLabel">Device</div>
+        <div class="iframe-holder" id="frame">
+            <iframe id="iframe" src="https://example.com"></iframe>
+        </div>
+    </div>
+</main>
+
+<script>
+const urlInput = document.getElementById("urlInput");
+const goBtn = document.getElementById("goBtn");
+const deviceSelect = document.getElementById("deviceSelect");
+const rotateBtn = document.getElementById("rotateBtn");
+const iframe = document.getElementById("iframe");
+const frame = document.getElementById("frame");
+const container = document.getElementById("deviceContainer");
+const label = document.getElementById("deviceLabel");
+const zoomSlider = document.getElementById("zoomSlider");
+const fitMode = document.getElementById("fitMode");
+
+let landscape = false;
+
+function render() {
+    let url = urlInput.value.trim();
+    if (!url.startsWith("http")) url = "https://" + url;
+    iframe.src = url;
+
+    let [w, h] = deviceSelect.value.split(",").map(Number);
+    if (landscape) [w, h] = [h, w];
+
+    label.textContent = `${deviceSelect.options[deviceSelect.selectedIndex].text} (${w}×${h})`;
+
+    frame.style.width = w + "px";
+    frame.style.height = h + "px";
+
+    const mode = fitMode.value;
+    const slider = parseFloat(zoomSlider.value);
+
+    let scale = 1;
+
+    if (mode === "auto") {
+        scale = Math.min(
+            1,
+            (window.innerWidth - 40) / w,
+            (window.innerHeight - 200) / h
+        );
+    } else if (mode === "width") {
+        scale = (window.innerWidth - 40) / w;
+    } else if (mode === "height") {
+        scale = (window.innerHeight - 200) / h;
+    } else if (mode === "100") {
+        scale = 1;
+    }
+
+    scale *= slider;
+
+    container.style.transform = `scale(${scale})`;
+}
+
+goBtn.onclick = render;
+deviceSelect.onchange = render;
+rotateBtn.onclick = () => { landscape = !landscape; render(); };
+zoomSlider.oninput = render;
+fitMode.onchange = render;
+
+window.onresize = render;
+
+render();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>The Internet Laboratory - Lab</title>
+  <style>
+    @font-face { font-family: 'Walter Turncoat'; src: url('assets/fonts/walter-turncoat.ttf') format('truetype'); font-weight: 400; font-style: normal; font-display: swap; }
+    @font-face { font-family: 'Pangolin'; src: url('assets/fonts/pangolin.ttf') format('truetype'); font-weight: 400; font-style: normal; font-display: swap; }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:         #eef0f4;
+      --surface:    #e4e7ed;
+      --border:     #cdd1da;
+      --border-hi:  #b4bac7;
+      --text:       #0f1318;
+      --text-dim:   #7a8494;
+      --text-mid:   #4a5464;
+      --accent:     #5a7a5a;
+      --accent-dim: rgba(90,122,90,0.07);
+    }
+
+    html, body {
+      width: 100%; height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: "Pangolin", cursive;
+      overflow-x: hidden;
+    }
+
+    #cursor {
+      display: none; position: fixed; width: 8px; height: 8px;
+      background: var(--accent); border-radius: 50%; pointer-events: none;
+      z-index: 9999; transform: translate(-50%, -50%);
+      transition: transform 0.08s, width 0.15s, height 0.15s, opacity 0.15s;
+      mix-blend-mode: multiply;
+    }
+    #cursor.big { width: 32px; height: 32px; background: transparent; border: 1px solid var(--accent); }
+    @media (hover: hover) and (pointer: fine) { #cursor { display: block; } body { cursor: none; } }
+
+    body::before {
+      content: ''; position: fixed; inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.035'/%3E%3C/svg%3E");
+      pointer-events: none; z-index: 9000; opacity: 0.6;
+    }
+
+    body::after {
+      content: ''; position: fixed; inset: 0;
+      background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.015) 2px, rgba(0,0,0,0.015) 4px);
+      pointer-events: none; z-index: 8999;
+    }
+
+    /* ── BOOT OVERLAY ── */
+    #boot-overlay {
+      position: fixed; inset: 0; background: #0f1318; z-index: 99999;
+      display: flex; align-items: center; justify-content: center;
+      color: #5a7a5a; font-family: monospace; font-size: 0.8rem;
+      transition: opacity 0.25s, filter 0.25s, transform 0.25s;
+    }
+    #boot-overlay.shatter-glitch {
+      opacity: 0; filter: contrast(3) blur(6px) invert(1);
+      transform: scale(1.05) skew(5deg); pointer-events: none;
+    }
+
+    #lab {
+      min-height: 100vh;
+      padding: 0 0 6rem;
+      background: #eef0f4;
+      color: #0f1318;
+    }
+
+    .topbar {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--border);
+      position: sticky; top: 0; background: rgba(238,240,244,0.92);
+      backdrop-filter: blur(12px); z-index: 50;
+    }
+    .topbar-logo { font-family: "Walter Turncoat", cursive; font-size: 1rem; color: #0f1318; }
+    .topbar-logo span { color: #a85c45; }
+    .topbar-meta {
+      font-size: 0.58rem; font-weight: 300; color: #7a8494; letter-spacing: 0.15em;
+      display: flex; align-items: center; gap: 0.5rem;
+    }
+    .topbar-dot { width: 4px; height: 4px; border-radius: 50%; animation: colorCycle 6s steps(1) infinite; }
+
+    .lab-hero { padding: 3rem 1.5rem 2rem; position: relative; }
+    .lab-hero-label { font-size: 0.6rem; font-weight: 300; color: #7a8494; letter-spacing: 0.2em; text-transform: uppercase; margin-bottom: 1rem; }
+    .lab-hero-heading { font-family: "Walter Turncoat", cursive; font-size: clamp(1.8rem, 6vw, 3.2rem); line-height: 1.2; color: #0f1318; max-width: 18ch; position: relative; }
+    .code-comment {
+      font-family: monospace; font-size: 0.75em; color: #a85c45; letter-spacing: 0.03em;
+      background: rgba(168,92,69,0.09); border: 1px solid rgba(168,92,69,0.22);
+      border-left: 3px solid #a85c45; display: inline-block; padding: 0.2em 0.6em 0.2em 0.5em;
+      border-radius: 3px; line-height: 1.6; margin: 0.15em 0;
+    }
+    .lab-hero-desc { margin-top: 1.25rem; font-size: 0.85rem; color: #4a5464; line-height: 1.7; max-width: 42ch; }
+
+    .hero-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; }
+    .lab-hero > *:not(canvas) { position: relative; z-index: 1; }
+
+    .section-header { display: flex; align-items: baseline; justify-content: space-between; padding: 1.5rem 1.5rem 0.75rem; margin-top: 2rem; }
+    .section-label { font-size: 0.6rem; color: #7a8494; letter-spacing: 0.2em; text-transform: uppercase; }
+    .section-count { font-size: 0.58rem; color: #b4bac7; }
+
+    .card-color-1 { color: #b5717a; } .card-color-2 { color: #e05a5a; }
+    .card-color-3 { color: #5a7a9f; } .card-color-4 { color: #7a3aaa; }
+    .card-color-5 { color: #2a9a5a; } .card-color-6 { color: #4a9acc; }
+    .card-color-7 { color: #c8952a; } .card-color-8 { color: #8a8478; }
+
+    .portal-grid {
+      display: grid; grid-template-columns: 1fr; gap: 1px; background: #cdd1da;
+      margin: 0 1.5rem; border: 1px solid #cdd1da;
+    }
+    @media (min-width: 520px) { .portal-grid { grid-template-columns: 1fr 1fr; } }
+    @media (min-width: 768px) { .portal-grid { grid-template-columns: repeat(3, 1fr); margin: 0 2.5rem; } }
+    @media (min-width: 1100px) { .portal-grid { grid-template-columns: repeat(4, 1fr); } }
+
+    .portal-card {
+      background: #eef0f4; padding: 1.25rem 1rem; display: flex; flex-direction: column;
+      gap: 0.5rem; cursor: none; position: relative; overflow: hidden; transition: background 0.12s ease;
+      min-height: 9rem; text-decoration: none;
+    }
+    .portal-card::after { content: ''; position: absolute; inset: 0; background: rgba(90,122,90,0.07); opacity: 0; transition: opacity 0.12s ease; }
+    .portal-card:hover { background: #e4e7ed; }
+    .portal-card:hover::after { opacity: 1; }
+    .portal-card:hover .portal-arrow { opacity: 1; transform: translate(2px,-2px); }
+    .portal-card:hover .portal-name { filter: brightness(1.15); }
+
+    .portal-card.featured { grid-column: 1 / -1; min-height: 7rem; }
+    @media (min-width: 520px) { .portal-card.featured { flex-direction: row; align-items: flex-start; justify-content: space-between; } }
+    @media (min-width: 1100px) { .portal-card.featured { grid-column: span 2; } }
+
+    .portal-tag { font-size: 0.52rem; letter-spacing: 0.18em; text-transform: uppercase; color: #7a8494; }
+    .portal-name { font-family: "Walter Turncoat", cursive; font-size: 1.15rem; transition: filter 0.12s; line-height: 1.2; }
+    .portal-card.featured .portal-name { font-size: 1.3rem; }
+    .portal-desc { font-size: 0.72rem; color: #7a8494; line-height: 1.6; margin-top: auto; }
+    .portal-arrow { font-size: 0.8rem; color: #5a7a5a; opacity: 0; transition: opacity 0.12s, transform 0.12s; align-self: flex-end; flex-shrink: 0; }
+    .portal-card.featured .portal-arrow { align-self: flex-start; margin-top: 0.2rem; }
+    .portal-status { display: inline-flex; align-items: center; gap: 0.3rem; font-size: 0.52rem; color: #5a7a5a; letter-spacing: 0.1em; margin-top: auto; }
+    .portal-status-dot { width: 4px; height: 4px; background: #5a7a5a; border-radius: 50%; animation: pulse 2.4s ease infinite; }
+
+    .portal-card:nth-child(1) { border-top: 2px solid #b5717a; } .portal-card:nth-child(2) { border-top: 2px solid #e05a5a; }
+    .portal-card:nth-child(3) { border-top: 2px solid #5a7a9f; } .portal-card:nth-child(4) { border-top: 2px solid #7a3aaa; }
+    .portal-card:nth-child(5) { border-top: 2px solid #2a9a5a; } .portal-card:nth-child(6) { border-top: 2px solid #4a9acc; }
+    .portal-card:nth-child(7) { border-top: 2px solid #c8952a; } .portal-card:nth-child(8) { border-top: 2px solid #8a8478; }
+
+    .log-section { margin: 0.75rem 1.5rem 0; border: 1px solid #cdd1da; background: #1a1c20; border-radius: 6px; overflow: hidden; max-height: 14rem; overflow-y: auto; }
+    .log-header { padding: 0.6rem 1rem; border-bottom: 1px solid #2a2d33; font-family: monospace; font-size: 0.6rem; color: #5a6a5a; letter-spacing: 0.15em; text-transform: uppercase; display: flex; align-items: center; gap: 0.5rem; background: #141618; }
+    .log-entry { padding: 0.65rem 1rem; border-bottom: 1px solid #1f2226; display: flex; align-items: baseline; gap: 1rem; cursor: none; transition: background 0.1s; }
+    .log-entry:last-child { border-bottom: none; } .log-entry:hover { background: #20242a; }
+    .log-time { font-family: monospace; font-size: 0.58rem; color: #4a6a4a; flex-shrink: 0; letter-spacing: 0.05em; }
+    .log-text { font-family: monospace; font-size: 0.64rem; color: #8aaa8a; line-height: 1.5; }
+    .log-text strong { color: #b8d4b8; font-weight: 400; }
+    .cursor-blink { display: inline-block; width: 7px; height: 0.85em; background: #4a6a4a; vertical-align: text-bottom; animation: pulse 1s steps(1) infinite; margin-left: 2px; }
+
+    .about-strip-wrapper { margin: 2.5rem 2.5rem 1.5rem; overflow: hidden; }
+    .about-strip { margin: 0; padding: 1.5rem 1.25rem 1.75rem; will-change: transform; background: #fdf8f0; border: 1px solid #e0d5c0; border-top: 3px solid #b8913a; box-shadow: 8px 14px 32px rgba(0,0,0,0.22), 0 2px 6px rgba(0,0,0,0.1); transform: rotate(-3deg); transform-origin: top center; position: relative; display: flex; flex-direction: column; gap: 0.85rem; }
+    .about-strip::before { content: ''; position: absolute; top: -8px; left: 50%; transform: translateX(-50%); width: 24px; height: 14px; background: rgba(184,145,58,0.35); border-radius: 2px; }
+    .about-strip p { font-size: 0.82rem; color: #4a3f2f; line-height: 1.75; }
+    .about-strip p strong { color: #2a1f0f; }
+    .about-label { font-family: "Walter Turncoat", cursive; font-size: 1rem; color: #b8913a; margin-bottom: 0.25rem; }
+    .about-strip.swinging { animation: swing 3s ease-out 0s 1 forwards; }
+
+    .lab-footer { margin: 2rem 1.5rem 0; padding-top: 1.25rem; border-top: 1px solid #cdd1da; display: flex; align-items: center; justify-content: space-between; }
+    .footer-mark { font-family: "Walter Turncoat", cursive; font-size: 0.95rem; color: #a85c45; }
+    .footer-mark span { color: #b8913a; }
+    .footer-meta { font-size: 0.55rem; color: #b4bac7; letter-spacing: 0.1em; }
+
+    @media (max-width: 519px) {
+      .about-strip-wrapper { margin: 2rem 1rem 1.5rem; }
+      .about-strip:not(.swinging) { transform: rotate(-2deg); }
+    }
+    @media (min-width: 768px) {
+      .topbar { padding: 1.25rem 2.5rem; }
+      .lab-hero { padding: 4rem 2.5rem 2.5rem; }
+      .lab-hero-heading { font-size: clamp(2.5rem, 5vw, 4.5rem); }
+      .section-header { padding: 2rem 2.5rem 1rem; }
+      .portal-card { padding: 1.5rem; min-height: 10rem; }
+      .portal-name { font-size: 1.05rem; }
+      .log-section, .lab-footer { margin-left: 2.5rem; margin-right: 2.5rem; }
+    }
+
+    /* Animations */
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+    @keyframes colorCycle {
+      0% { background: #b5717a; box-shadow: 0 0 4px #b5717a; }
+      12% { background: #e05a5a; box-shadow: 0 0 4px #e05a5a; }
+      25% { background: #5a7a9f; box-shadow: 0 0 4px #5a7a9f; }
+      37% { background: #7a3aaa; box-shadow: 0 0 4px #7a3aaa; }
+      50% { background: #2a9a5a; box-shadow: 0 0 4px #2a9a5a; }
+      62% { background: #4a9acc; box-shadow: 0 0 4px #4a9acc; }
+      75% { background: #c8952a; box-shadow: 0 0 4px #c8952a; }
+      87% { background: #8a8478; box-shadow: 0 0 4px #8a8478; }
+      100% { background: #b5717a; box-shadow: 0 0 4px #b5717a; }
+    }
+    @keyframes swing {
+      0% { transform: rotate(-3deg); } 10% { transform: rotate(3.5deg); }
+      20% { transform: rotate(-2.8deg); } 30% { transform: rotate(2.2deg); }
+      40% { transform: rotate(-1.6deg); } 50% { transform: rotate(1.8deg); }
+      60% { transform: rotate(0.8deg); } 70% { transform: rotate(1.6deg); }
+      80% { transform: rotate(1.2deg); } 90% { transform: rotate(1.8deg); }
+      100% { transform: rotate(2deg); }
+    }
+    @keyframes glitch {
+      0% { clip-path: inset(0 0 98% 0); transform: translateX(-2px); }
+      10% { clip-path: inset(30% 0 50% 0); transform: translateX(2px); }
+      20% { clip-path: inset(70% 0 10% 0); transform: translateX(-1px); }
+      30% { clip-path: inset(10% 0 80% 0); transform: translateX(0); }
+      40% { clip-path: inset(50% 0 30% 0); transform: translateX(1px); }
+      100% { clip-path: inset(0 0 0 0); transform: translateX(0); }
+    }
+    .lab-hero-heading::before, .lab-hero-heading::after {
+      content: attr(data-text); position: absolute; top: 0; left: 0; right: 0;
+      color: var(--accent); opacity: 0;
+    }
+    .lab-hero-heading:hover::before { opacity: 0.06; animation: glitch 0.4s steps(1) forwards; transform: translateX(-3px); }
+    .lab-hero-heading:hover::after { opacity: 0.04; animation: glitch 0.4s steps(1) 0.05s forwards; transform: translateX(3px); color: #8aaa8a; }
+
+  </style>
+</head>
+<body>
+
+  <div id="boot-overlay">
+    <span>> INITIALIZING LAB KERNEL...</span>
+  </div>
+
+  <div id="cursor"></div>
+
+  <div id="lab">
+    <nav class="topbar">
+      <div class="topbar-logo">The Internet <span>Laboratory</span></div>
+      <div class="topbar-meta">
+        <span class="topbar-dot"></span>
+        <span id="labTime">--:--:--</span>
+      </div>
+    </nav>
+
+    <section class="lab-hero" id="labHero">
+      <canvas class="hero-canvas" id="heroCanvas"></canvas>
+      <p class="lab-hero-label">// entrance</p>
+      <h2 class="lab-hero-heading" data-text="Strange things. built for no one In particular.">Strange things.<br><span class="code-comment">built for no one</span><br>In particular.</h2>
+      <p class="lab-hero-desc">
+        A digital playground somewhere on the internet. Experiments, games, tools, traps, generators, galleries, machines, and junk. Nothing is here by accident, even the accidents.
+      </p>
+    </section>
+
+    <div class="section-header">
+      <span class="section-label">// sections</span>
+      <span class="section-count">08 areas</span>
+    </div>
+
+    <div class="portal-grid">
+      <a class="portal-card featured" href="projects/experiments/index.html">
+        <div>
+          <p class="portal-tag">01 &nbsp;·&nbsp; active</p>
+          <p class="portal-name card-color-1">Experiments</p>
+          <p class="portal-desc">Interactive concepts and unusual ideas. Some work. Some don't. All exist for unclear reasons.</p>
+          <p class="portal-status"><span class="portal-status-dot"></span> 1 running</p>
+        </div>
+        <p class="portal-arrow">↗</p>
+      </a>
+
+      <a class="portal-card" href="projects/games/index.html">
+        <p class="portal-tag">02</p>
+        <p class="portal-name card-color-2">Games</p>
+        <p class="portal-desc">Broken rules. Unfair odds. Things that play you as much as you play them.</p>
+        <p class="portal-arrow">↗</p>
+      </a>
+
+      <a class="portal-card" href="projects/tools/index.html">
+        <p class="portal-tag">03</p>
+        <p class="portal-name card-color-3">Tools</p>
+        <p class="portal-desc">Tiny, focused utilities. Built because the alternative was doing nothing.</p>
+        <p class="portal-arrow">↗</p>
+      </a>
+
+      <a class="portal-card" href="projects/traps/index.html">
+        <p class="portal-tag">04</p>
+        <p class="portal-name card-color-4">Traps</p>
+        <p class="portal-desc">Win something. Claim your prize. Unlock your reward. (You won't.)</p>
+        <p class="portal-arrow">↗</p>
+      </a>
+
+      <a class="portal-card" href="projects/generators/index.html">
+        <p class="portal-tag">05</p>
+        <p class="portal-name card-color-5">Generators</p>
+        <p class="portal-desc">Put something in. Get something out. Whether that's useful is your problem.</p>
+        <p class="portal-arrow">↗</p>
+      </a>
+
+      <a class="portal-card" href="projects/gallery/index.html">
+        <p class="portal-tag">06</p>
+        <p class="portal-name card-color-6">Gallery</p>
+        <p class="portal-desc">Things to look at. Generative, visual, strange. No captions.</p>
+        <p class="portal-arrow">↗</p>
+      </a>
+
+      <a class="portal-card" href="projects/machines/index.html">
+        <p class="portal-tag">07</p>
+        <p class="portal-name card-color-7">Machines</p>
+        <p class="portal-desc">Contraptions. Each one does one thing. Operate at your own risk.</p>
+        <p class="portal-arrow">↗</p>
+      </a>
+
+      <a class="portal-card" href="projects/junk/index.html">
+        <p class="portal-tag">08</p>
+        <p class="portal-name card-color-8">Junk</p>
+        <p class="portal-desc">The drawer. If it doesn't fit anywhere else, it ended up here.</p>
+        <p class="portal-arrow">↗</p>
+      </a>
+    </div>
+
+    <div class="section-header" style="margin-top:1.5rem;">
+      <span class="section-label">// lab log</span>
+      <span class="section-count">recent activity</span>
+    </div>
+
+    <div class="log-section">
+      <div class="log-header">
+        <span class="topbar-dot"></span>
+        activity stream
+      </div>
+      <div class="log-entry">
+        <span class="log-time">now</span>
+        <span class="log-text"><strong>playground.init()</strong> — 08 sections online.</span>
+      </div>
+      <div class="log-entry">
+        <span class="log-time">—</span>
+        <span class="log-text">Traps armed. Games running. <strong>Generators generating.</strong></span>
+      </div>
+      <div class="log-entry">
+        <span class="log-time">—</span>
+        <span class="log-text">No schedule. <strong>No idea what happens next.</strong><span class="cursor-blink"></span></span>
+      </div>
+    </div>
+
+    <div class="about-strip-wrapper">
+      <div class="about-strip" id="about">
+        <p class="about-label">// about</p>
+        <p>
+          A digital playground operated by one person, from a phone, for reasons that made sense at the time and have not been reviewed since.
+        </p>
+        <p>
+          Contains experiments, games, tools, traps, generators, galleries, machines, and junk. Some of it works. Most of it barely does. <strong>All of it exists on purpose.</strong>
+        </p>
+        <p>
+          No roadmap. No investors. No adults supervising. Just curiosity and a phone with a reasonable data plan.
+        </p>
+        <a href="about/index.html" style="font-family:'Pangolin', cursive;font-size:0.72rem;color:#b8913a;text-decoration:none;letter-spacing:0.08em;align-self:flex-start;margin-top:0.25rem;">→ read more</a>
+      </div>
+    </div>
+
+    <div class="lab-footer">
+      <div class="footer-mark">INLT<span>.</span></div>
+      <div class="footer-meta">always running &nbsp;·&nbsp; never done</div>
+    </div>
+  </div>
+
+  <script>
+    // 1. BOOT SEQUENCE LOGIC
+    window.addEventListener('load', () => {
+      setTimeout(() => {
+        const overlay = document.getElementById('boot-overlay');
+        overlay.classList.add('shatter-glitch');
+        setTimeout(() => overlay.remove(), 300);
+      }, 100);
+    });
+
+    // 2. CURSOR & CLOCK LOGIC
+    const cursor = document.getElementById('cursor');
+    document.addEventListener('mousemove', e => {
+      if (cursor) { cursor.style.left = e.clientX+'px'; cursor.style.top = e.clientY+'px'; }
+    });
+    
+    document.querySelectorAll('a, button').forEach(el => {
+      el.addEventListener('mouseenter', () => { if(cursor) cursor.classList.add('big'); });
+      el.addEventListener('mouseleave', () => { if(cursor) cursor.classList.remove('big'); });
+    });
+
+    function updateClock() {
+      const el = document.getElementById('labTime');
+      if (el) el.textContent = new Date().toLocaleTimeString('en-GB', { hour12: false });
+    }
+    updateClock();
+    setInterval(updateClock, 1000);
+
+    // 3. ABOUT STRIP SWING ANIMATION
+    const swingObserver = new IntersectionObserver(entries => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          document.getElementById('about').classList.add('swinging');
+          swingObserver.disconnect();
+        }
+      });
+    }, { threshold: 0.3 });
+    swingObserver.observe(document.querySelector('.about-strip-wrapper'));
+
+    // 4. COMPLEX CANVAS SAND ENGINE
+    const canvas = document.getElementById('heroCanvas');
+    const ctx = canvas.getContext('2d');
+    const hero = document.getElementById('labHero');
+    
+    const COLOURS = ['#a85c45','#b8913a','#c4703a','#9a4f38','#d4a445','#b06840'];
+    const G = 2;
+    const SPAWN = 2;
+    const MAX = 4000;
+    const ZONE = 50;
+    const GRAVITY = 0.15;
+    const FADE = 0.004;
+
+    let floor = [], falling = [], settled = [], columnGrains = [];
+    let targetX = 0, showerX = 0, W = 0, H = 0;
+    let rafId = null;
+
+    function initCanvas() {
+      if (!canvas || !hero) return;
+      const oldW = W;
+      W = hero.offsetWidth;
+      H = hero.offsetHeight;
+      canvas.width = W;
+      canvas.height = H;
+      targetX = W / 2;
+      showerX = W / 2;
+
+      if (floor.length === 0 || oldW !== W) {
+        floor = new Array(W).fill(H);
+        columnGrains = Array.from({ length: W }, () => []);
+        const oldSettled = [...settled];
+        settled = [];
+        oldSettled.forEach(s => {
+          const sc = Math.round(s.x);
+          if (sc >= 0 && sc < W) {
+            settled.push(s);
+            columnGrains[sc].push(s);
+            floor[sc] = Math.min(floor[sc], s.y);
+          }
+        });
+      }
+    }
+    
+    window.addEventListener('resize', initCanvas);
+    initCanvas();
+
+    hero.addEventListener('mousemove', e => {
+      const r = hero.getBoundingClientRect();
+      if (e.clientX >= r.left && e.clientX <= r.right) targetX = e.clientX - r.left;
+    });
+
+    window.addEventListener('deviceorientation', e => {
+      if (e.gamma != null && W > 0) {
+        const norm = (Math.max(-25, Math.min(25, e.gamma)) + 25) / 50;
+        targetX = norm * W;
+      }
+    });
+
+    function spawn() {
+      showerX += (targetX - showerX) * 0.06;
+      const x = Math.max(0, Math.min(W - 1, showerX - ZONE/2 + Math.random() * ZONE));
+      falling.push({ x, y: 0, vy: 0.8 + Math.random() * 0.6, color: COLOURS[Math.floor(Math.random() * COLOURS.length)] });
+    }
+
+    function tick() {
+      rafId = requestAnimationFrame(tick);
+      if (!ctx || W === 0) return;
+      ctx.clearRect(0, 0, W, H);
+
+      for (let s = 0; s < SPAWN; s++) spawn();
+
+      for (let i = falling.length - 1; i >= 0; i--) {
+        const g = falling[i];
+        g.vy += GRAVITY;
+        g.y += g.vy;
+        g.x = Math.max(0, Math.min(W - 1, g.x));
+        const col = Math.round(g.x);
+        const fl = floor[col] - G;
+
+        if (g.y >= fl) {
+          const lCol = Math.max(0, col - G);
+          const rCol = Math.min(W - 1, col + G);
+          const canL = floor[lCol] - G > fl + 1 && lCol !== col;
+          const canR = floor[rCol] - G > fl + 1 && rCol !== col;
+
+          if (canL && canR) {
+            if (floor[lCol] > floor[rCol]) g.x -= G; else g.x += G;
+            g.vy *= 0.3;
+          } else if (canL) { g.x -= G; g.vy *= 0.3; }
+          else if (canR) { g.x += G; g.vy *= 0.3; }
+          else {
+            g.y = fl;
+            const sc = Math.round(g.x);
+            floor[sc] = Math.min(floor[sc], g.y);
+            if (sc > 0) floor[sc-1] = Math.min(floor[sc-1], g.y + 1);
+            if (sc < W-1) floor[sc+1] = Math.min(floor[sc+1], g.y + 1);
+            
+            const settledGrain = { x: g.x, y: g.y, color: g.color, alpha: 1, fading: false };
+            settled.push(settledGrain);
+            columnGrains[sc].push(settledGrain);
+            
+            falling.splice(i, 1);
+            if (settled.length > MAX) settled[0].fading = true;
+          }
+        }
+      }
+
+      ctx.shadowBlur = 0;
+      for (let i = settled.length - 1; i >= 0; i--) {
+        const s = settled[i];
+        if (s.fading) {
+          s.alpha -= FADE;
+          if (s.alpha <= 0) {
+            const sc = Math.round(s.x);
+            columnGrains[sc] = columnGrains[sc].filter(item => item !== s);
+            let nf = H;
+            for (let j = 0; j < columnGrains[sc].length; j++) {
+              if (!columnGrains[sc][j].fading && columnGrains[sc][j].y < nf) {
+                nf = columnGrains[sc][j].y;
+              }
+            }
+            floor[sc] = nf;
+            settled.splice(i, 1);
+            continue;
+          }
+        }
+        ctx.globalAlpha = s.alpha;
+        ctx.fillStyle = s.color;
+        ctx.fillRect(s.x, s.y, G, G);
+      }
+
+      ctx.shadowBlur = 5;
+      ctx.globalAlpha = 0.95;
+      for (const g of falling) {
+        ctx.fillStyle = g.color;
+        ctx.shadowColor = g.color;
+        ctx.fillRect(g.x, g.y, G, G);
+      }
+      ctx.shadowBlur = 0;
+      ctx.globalAlpha = 1;
+    }
+    
+    tick();
+  </script>
+</body>
+</html>

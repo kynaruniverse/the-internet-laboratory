@@ -19,56 +19,53 @@
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --bg:          #f0f0ec;
-      --surface:     #e8e8e4;
-      --tray:        #dcdcd6;
-      --tray-border: #b8b8b0;
-      --ink:         #1a1a18;
-      --ink-dim:     #6a6a62;
-      --ink-faint:   #aaaaA0;
-      --red:         #c0392b;
-      --green:       #27ae60;
-      --amber:       #d4880a;
-      --font-body:   'Pangolin', cursive;
-      --font-sub:    'Walter Turncoat', cursive;
+      --bg:         #0a0c0e;
+      --machine:    #0f1214;
+      --glass:      rgba(160,210,240,0.04);
+      --glass-edge: rgba(160,210,240,0.12);
+      --lit:        #e8f4ff;
+      --lit-dim:    #9ab8cc;
+      --lit-faint:  #3a5060;
+      --border:     #1e2830;
+      --accent:     #4a9acc;
+      --accent-dim: rgba(74,154,204,0.15);
+      --warm:       #c89a4a;
+      --font-body:  'Pangolin', cursive;
+      --font-sub:   'Walter Turncoat', cursive;
     }
 
     html, body {
       min-height: 100%;
       background: var(--bg);
+      color: var(--lit);
       font-family: var(--font-body);
       overflow-x: hidden;
-      color: var(--ink);
     }
 
-    /* ── Harsh overhead light ── */
+    /* ── Vending machine ambient glow from top ── */
     body::before {
       content: '';
       position: fixed;
-      top: -20vh;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 60vw;
-      height: 80vh;
-      background: radial-gradient(
-        ellipse at 50% 0%,
-        rgba(255,255,255,0.55) 0%,
-        rgba(255,255,255,0.15) 40%,
+      top: 0; left: 0; right: 0;
+      height: 40vh;
+      background: radial-gradient(ellipse at 50% 0%,
+        rgba(74,154,204,0.07) 0%,
         transparent 70%
       );
       pointer-events: none;
       z-index: 0;
     }
 
-    /* ── Floor grid ── */
+    /* ── Floor reflection ── */
     body::after {
       content: '';
       position: fixed;
-      inset: 0;
-      background-image:
-        linear-gradient(rgba(0,0,0,0.04) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(0,0,0,0.04) 1px, transparent 1px);
-      background-size: 32px 32px;
+      bottom: 0; left: 0; right: 0;
+      height: 30vh;
+      background: linear-gradient(0deg,
+        rgba(74,154,204,0.04) 0%,
+        transparent 100%
+      );
       pointer-events: none;
       z-index: 0;
     }
@@ -76,473 +73,971 @@
     /* ── Back link ── */
     .back-link {
       position: fixed;
-      top: 1.25rem;
-      left: 1.25rem;
+      top: 1.25rem; left: 1.25rem;
       font-family: var(--font-body);
       font-size: 0.6rem;
       letter-spacing: 0.15em;
       text-transform: uppercase;
-      color: var(--ink-dim);
+      color: var(--lit-faint);
       text-decoration: none;
       z-index: 100;
       transition: color 0.15s;
     }
-    .back-link:hover { color: var(--ink); }
+    .back-link:hover { color: var(--lit-dim); }
 
-    /* ── Page ── */
-    .page {
+    /* ══════════════════════════════
+       MACHINE HEADER
+    ══════════════════════════════ */
+    .machine-header {
       position: relative;
-      z-index: 1;
-      max-width: 680px;
-      margin: 0 auto;
-      padding: 4.5rem 1.25rem 6rem;
-    }
-
-    /* ── Header — overhead sign ── */
-    .page-header {
-      margin-bottom: 2.5rem;
+      z-index: 2;
+      padding: 3.5rem 1.5rem 0;
       opacity: 0;
-      animation: fadeIn 0.5s ease 0.2s forwards;
+      animation: fadeIn 0.6s ease 0.15s forwards;
     }
 
-    .header-sign {
-      display: inline-block;
-      background: var(--ink);
-      color: #f0f0ec;
-      padding: 0.6rem 1.4rem 0.55rem;
-      font-family: var(--font-sub);
-      font-size: clamp(1.6rem, 6vw, 2.6rem);
-      font-weight: 400;
-      letter-spacing: 0.04em;
+    /* Display panel at top of machine */
+    .display-panel {
+      background: #060a0c;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 1rem 1.2rem;
+      margin-bottom: 1.5rem;
       position: relative;
-      box-shadow: 4px 4px 0 var(--tray-border);
-    }
-
-    /* mounting screws */
-    .header-sign::before,
-    .header-sign::after {
-      content: '●';
-      position: absolute;
-      top: 50%;
-      transform: translateY(-50%);
-      font-size: 0.4rem;
-      color: var(--tray-border);
-    }
-    .header-sign::before { left:  0.5rem; }
-    .header-sign::after  { right: 0.5rem; }
-
-    .header-sub {
-      font-size: 0.7rem;
-      color: var(--ink-dim);
-      margin-top: 0.9rem;
-      line-height: 1.6;
-      font-family: var(--font-body);
-    }
-
-    /* ── Tray system ── */
-    .tray-unit {
-      background: var(--tray);
-      border: 1px solid var(--tray-border);
+      overflow: hidden;
       box-shadow:
-        inset 0 1px 0 rgba(255,255,255,0.5),
-        2px 3px 8px rgba(0,0,0,0.1);
-      margin-bottom: 1px;
-      opacity: 0;
-      animation: fadeIn 0.5s ease forwards;
+        inset 0 0 30px rgba(0,0,0,0.6),
+        0 0 20px rgba(74,154,204,0.08);
     }
-    .tray-unit:nth-child(1) { animation-delay: 0.35s; }
-    .tray-unit:nth-child(2) { animation-delay: 0.45s; }
-    .tray-unit:nth-child(3) { animation-delay: 0.55s; }
-    .tray-unit:nth-child(4) { animation-delay: 0.65s; }
-    .tray-unit:nth-child(5) { animation-delay: 0.75s; }
-    .tray-unit:nth-child(6) { animation-delay: 0.85s; }
+    /* Screen scanlines */
+    .display-panel::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: repeating-linear-gradient(
+        0deg,
+        rgba(0,0,0,0.12) 0px, rgba(0,0,0,0.12) 1px,
+        transparent 1px, transparent 3px
+      );
+      pointer-events: none;
+      z-index: 1;
+    }
+    .display-inner { position: relative; z-index: 2; }
+    .display-eyebrow {
+      font-family: monospace;
+      font-size: 0.46rem;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 0.4rem;
+      opacity: 0.7;
+    }
+    .display-title {
+      font-family: var(--font-sub);
+      font-size: clamp(2rem, 9vw, 4rem);
+      font-weight: 400;
+      color: var(--lit);
+      line-height: 1;
+      letter-spacing: 0.02em;
+      text-shadow: 0 0 30px rgba(74,154,204,0.4);
+    }
+    .display-sub {
+      margin-top: 0.5rem;
+      font-family: monospace;
+      font-size: 0.5rem;
+      letter-spacing: 0.12em;
+      color: var(--lit-faint);
+    }
+    /* Blinking cursor on display */
+    .display-cursor {
+      display: inline-block;
+      width: 8px; height: 0.75em;
+      background: var(--accent);
+      vertical-align: text-bottom;
+      margin-left: 3px;
+      animation: blink 1s steps(1) infinite;
+      opacity: 0.7;
+    }
+    @keyframes blink { 0%,100%{opacity:0.7} 50%{opacity:0} }
 
-    /* ── Tray header ── */
-    .tray-header {
-      padding: 0.5rem 1rem;
-      border-bottom: 1px solid var(--tray-border);
+    /* Coin slot / status row */
+    .machine-status {
       display: flex;
       align-items: center;
-      justify-content: space-between;
-      background: var(--surface);
+      gap: 1rem;
+      margin-bottom: 0;
     }
-
-    .tray-id {
-      font-family: monospace;
-      font-size: 0.48rem;
-      letter-spacing: 0.2em;
-      color: var(--ink-faint);
-      text-transform: uppercase;
-    }
-
-    .tray-indicator {
+    .status-chip {
       display: flex;
       align-items: center;
       gap: 0.4rem;
+      background: rgba(74,154,204,0.07);
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      padding: 0.3rem 0.6rem;
     }
-
-    .indicator-light {
-      width: 7px; height: 7px;
+    .chip-dot {
+      width: 5px; height: 5px;
       border-radius: 50%;
-      border: 1px solid rgba(0,0,0,0.2);
+      background: var(--accent);
+      animation: pulse 2.5s ease infinite;
     }
-    .indicator-light.red    { background: var(--red);   box-shadow: 0 0 4px rgba(192,57,43,0.5); }
-    .indicator-light.green  { background: var(--green); box-shadow: 0 0 4px rgba(39,174,96,0.5); animation: pulse 2.4s ease infinite; }
-    .indicator-light.amber  { background: var(--amber); box-shadow: 0 0 4px rgba(212,136,10,0.5); animation: pulse 3.2s ease infinite 0.8s; }
-    .indicator-light.off    { background: var(--tray-border); }
-
-    /* ── Tray body ── */
-    .tray-body {
-      padding: 0.9rem 1rem;
-      display: flex;
-      align-items: flex-start;
-      gap: 1rem;
-    }
-
-    /* Item slot — the physical container */
-    .item-slot {
-      flex-shrink: 0;
-      width: 44px; height: 44px;
-      background: var(--bg);
-      border: 1px solid var(--tray-border);
-      box-shadow: inset 1px 1px 3px rgba(0,0,0,0.1);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 1.1rem;
-    }
-
-    .item-info { flex: 1; }
-
-    .item-name {
-      font-family: var(--font-sub);
-      font-size: 0.95rem;
-      color: var(--ink);
-      line-height: 1.2;
-      margin-bottom: 0.3rem;
-    }
-
-    .item-desc {
-      font-size: 0.62rem;
-      color: var(--ink-dim);
-      line-height: 1.5;
-      margin-bottom: 0.5rem;
-    }
-
-    /* Chart label row — like a medical chart tag */
-    .item-chart {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      flex-wrap: wrap;
-    }
-
-    .chart-tag {
+    .chip-text {
       font-family: monospace;
-      font-size: 0.42rem;
+      font-size: 0.46rem;
       letter-spacing: 0.12em;
       text-transform: uppercase;
-      padding: 0.15em 0.5em;
-      border: 1px solid var(--tray-border);
-      background: var(--bg);
-      color: var(--ink-faint);
+      color: var(--lit-dim);
     }
-    .chart-tag.status-wip      { border-color: var(--amber); color: var(--amber); }
-    .chart-tag.status-running  { border-color: var(--green); color: var(--green); }
-    .chart-tag.status-abandoned{ border-color: var(--ink-faint); color: var(--ink-faint); text-decoration: line-through; }
-
-    .tray-link {
-      text-decoration: none;
-      color: inherit;
-      display: block;
-      transition: background 0.1s;
-    }
-    .tray-link:hover .tray-unit,
-    .tray-unit:hover {
-      background: #d8d8d2;
+    .coin-slot {
+      margin-left: auto;
+      font-family: monospace;
+      font-size: 0.44rem;
+      letter-spacing: 0.15em;
+      color: var(--lit-faint);
     }
 
-    /* ── Clipboard ── */
-    .clipboard {
-      margin-top: 2.5rem;
-      opacity: 0;
-      animation: fadeIn 0.5s ease 1s forwards;
+    /* ══════════════════════════════
+       VENDING SLOTS GRID
+    ══════════════════════════════ */
+    .slots-section {
       position: relative;
+      z-index: 2;
+      margin: 1.5rem 1.5rem 0;
     }
-
-    .clipboard-clip {
-      width: 48px; height: 20px;
-      background: var(--tray-border);
-      border: 1px solid #9a9a90;
-      border-radius: 3px 3px 0 0;
-      margin: 0 auto;
-      box-shadow: 0 -2px 4px rgba(0,0,0,0.1);
-      position: relative;
-    }
-    .clipboard-clip::after {
-      content: '';
-      position: absolute;
-      bottom: -1px; left: 8px; right: 8px;
-      height: 8px;
-      background: var(--tray-border);
-      border: 1px solid #9a9a90;
-      border-top: none;
-    }
-
-    .clipboard-board {
-      background: var(--surface);
-      border: 1px solid var(--tray-border);
-      padding: 1.2rem 1rem 1rem;
-      box-shadow: 2px 4px 10px rgba(0,0,0,0.12);
-    }
-
-    .clipboard-label {
+    .slots-label {
       font-family: monospace;
       font-size: 0.48rem;
       letter-spacing: 0.2em;
       text-transform: uppercase;
-      color: var(--ink-faint);
-      margin-bottom: 0.8rem;
-      border-bottom: 1px solid var(--tray-border);
-      padding-bottom: 0.5rem;
+      color: var(--lit-faint);
+      margin-bottom: 0.75rem;
     }
 
-    .chart-row {
+    /* Glass front of the machine */
+    .machine-glass {
+      background: var(--glass);
+      border: 1px solid var(--glass-edge);
+      border-radius: 6px;
+      padding: 1px;
+      box-shadow:
+        inset 0 0 60px rgba(0,0,0,0.4),
+        0 0 40px rgba(74,154,204,0.06);
+      position: relative;
+      overflow: hidden;
+    }
+    /* Glass sheen */
+    .machine-glass::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 40%;
+      background: linear-gradient(180deg,
+        rgba(255,255,255,0.025) 0%,
+        transparent 100%
+      );
+      pointer-events: none;
+      z-index: 10;
+    }
+
+    .slots-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1px;
+      background: var(--border);
+    }
+    @media (min-width: 560px) {
+      .slots-grid { grid-template-columns: repeat(3, 1fr); }
+    }
+
+    /* ── Single slot ── */
+    .slot {
+      background: var(--machine);
+      padding: 1rem 0.85rem;
+      position: relative;
+      cursor: pointer;
+      overflow: hidden;
+      min-height: 13rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0;
+      transition: background 0.15s;
+    }
+    .slot:hover { background: #141a1e; }
+
+    /* Slot number */
+    .slot-num {
+      font-family: monospace;
+      font-size: 0.42rem;
+      letter-spacing: 0.2em;
+      color: var(--lit-faint);
+      align-self: flex-start;
+      margin-bottom: 0.6rem;
+    }
+
+    /* ── BLISTER PACK ── */
+    .blister-pack {
+      width: 100%;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    /* Cardboard backing */
+    .blister-card {
+      background: linear-gradient(160deg, #d4c8a8 0%, #c8bc98 100%);
+      border-radius: 4px 4px 0 0;
+      padding: 0.5rem 0.5rem 0;
+      position: relative;
+      z-index: 1;
+    }
+    .blister-brand {
+      font-family: monospace;
+      font-size: 0.38rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: #6a5a38;
+      margin-bottom: 0.15rem;
+    }
+    .blister-name {
+      font-family: var(--font-sub);
+      font-size: 0.9rem;
+      color: #2a1e08;
+      line-height: 1.15;
+    }
+
+    /* Plastic bubble */
+    .blister-bubble {
+      background: linear-gradient(135deg,
+        rgba(160,220,255,0.22) 0%,
+        rgba(120,190,240,0.12) 40%,
+        rgba(180,230,255,0.18) 100%
+      );
+      border: 1px solid rgba(160,220,255,0.25);
+      border-top: none;
+      border-radius: 0 0 8px 8px;
+      padding: 0.7rem 0.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 4rem;
+      position: relative;
+      box-shadow: inset 0 4px 12px rgba(255,255,255,0.06);
+    }
+    /* Plastic sheen */
+    .blister-bubble::before {
+      content: '';
+      position: absolute;
+      top: 4px; left: 8px; right: 40%;
+      height: 30%;
+      background: linear-gradient(180deg,
+        rgba(255,255,255,0.12) 0%,
+        transparent 100%
+      );
+      border-radius: 4px;
+      pointer-events: none;
+    }
+    .blister-icon {
+      font-size: 1.6rem;
+      filter: drop-shadow(0 2px 6px rgba(0,0,0,0.4));
+      user-select: none;
+    }
+
+    /* Cardboard lower half — desc + barcode */
+    .blister-lower {
+      background: linear-gradient(160deg, #c8bc98 0%, #b8ac88 100%);
+      border-radius: 0 0 4px 4px;
+      padding: 0.4rem 0.5rem 0.45rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+    .blister-desc {
+      font-family: var(--font-body);
+      font-size: 0.5rem;
+      color: #4a3a20;
+      line-height: 1.4;
+    }
+    .blister-barcode {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      margin-top: 0.2rem;
+    }
+    .barcode-lines {
+      display: flex;
+      gap: 0.5px;
+      align-items: flex-end;
+      height: 14px;
+    }
+    .bar {
+      background: #2a1e08;
+      width: 1.5px;
+    }
+    .barcode-num {
+      font-family: monospace;
+      font-size: 0.32rem;
+      color: #6a5a38;
+      letter-spacing: 0.05em;
+    }
+
+    /* Status strip at bottom of blister */
+    .slot-status {
+      align-self: flex-start;
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+      margin-top: 0.5rem;
+    }
+    .slot-dot {
+      width: 4px; height: 4px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .slot-dot.running  { background: var(--accent); animation: pulse 2s ease infinite; }
+    .slot-dot.wip      { background: var(--warm); }
+    .slot-dot.empty    { background: #333; }
+    .slot-status-text {
+      font-family: monospace;
+      font-size: 0.4rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--lit-faint);
+    }
+
+    /* Dispense animation */
+    @keyframes dispense {
+      0%   { transform: translateY(0); }
+      20%  { transform: translateY(-8px); }
+      50%  { transform: translateY(4px); }
+      70%  { transform: translateY(-3px); }
+      100% { transform: translateY(0); }
+    }
+    .slot.dispensing .blister-pack {
+      animation: dispense 0.5s cubic-bezier(0.34,1.4,0.64,1);
+    }
+
+    /* Empty slot */
+    .slot-empty-label {
+      font-family: monospace;
+      font-size: 0.42rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--lit-faint);
+      opacity: 0.4;
+      text-align: center;
+      margin: auto;
+    }
+
+    /* ══════════════════════════════
+       EMBEDDED TOOL — COLOUR NAMER
+    ══════════════════════════════ */
+    .tool-embed {
+      position: relative;
+      z-index: 2;
+      margin: 1.5rem 1.5rem 0;
+      opacity: 0;
+      animation: fadeIn 0.6s ease 0.9s forwards;
+    }
+    .tool-embed-label {
+      font-family: monospace;
+      font-size: 0.48rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--lit-faint);
+      margin-bottom: 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+    .embed-live-dot {
+      width: 5px; height: 5px;
+      border-radius: 50%;
+      background: var(--accent);
+      animation: pulse 2s ease infinite;
+      flex-shrink: 0;
+    }
+    .tool-embed-box {
+      background: var(--machine);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      overflow: hidden;
+      box-shadow: inset 0 0 30px rgba(0,0,0,0.3);
+    }
+    .tool-embed-top {
+      background: #060a0c;
+      border-bottom: 1px solid var(--border);
+      padding: 0.5rem 0.9rem;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 0.35rem 0;
-      border-bottom: 1px dotted var(--tray-border);
-      font-family: monospace;
-      font-size: 0.5rem;
-      color: var(--ink-dim);
-      letter-spacing: 0.08em;
     }
-    .chart-row:last-child { border-bottom: none; }
-    .chart-row-label { color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.14em; }
-    .chart-row-val   { color: var(--ink-dim); }
+    .tool-embed-name {
+      font-family: monospace;
+      font-size: 0.46rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--lit-dim);
+    }
+    .tool-embed-slot {
+      font-family: monospace;
+      font-size: 0.42rem;
+      color: var(--lit-faint);
+    }
+    .tool-embed-body {
+      padding: 1.1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.9rem;
+    }
 
-    /* ── Footer ── */
-    .page-footer {
-      margin-top: 2.5rem;
-      padding-top: 1rem;
-      border-top: 2px solid var(--ink);
+    /* Colour swatch display */
+    .colour-swatch-large {
+      width: 100%;
+      height: 80px;
+      border-radius: 3px;
+      transition: background 0.3s ease;
+      position: relative;
+      overflow: hidden;
+      box-shadow: inset 0 0 20px rgba(0,0,0,0.2);
+    }
+    .colour-swatch-large::after {
+      content: '';
+      position: absolute; inset: 0;
+      background: repeating-linear-gradient(
+        45deg,
+        transparent, transparent 10px,
+        rgba(255,255,255,0.015) 10px, rgba(255,255,255,0.015) 11px
+      );
+    }
+    .colour-name-display {
+      font-family: var(--font-sub);
+      font-size: 1.3rem;
+      color: var(--lit);
+      line-height: 1.1;
+      min-height: 1.5rem;
+      transition: opacity 0.2s;
+    }
+    .colour-hex-display {
+      font-family: monospace;
+      font-size: 0.55rem;
+      letter-spacing: 0.12em;
+      color: var(--lit-dim);
+    }
+    .colour-input-row {
+      display: flex;
+      gap: 0.6rem;
+      align-items: center;
+    }
+    .colour-picker {
+      width: 36px; height: 36px;
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      background: none;
+      cursor: pointer;
+      padding: 2px;
+      flex-shrink: 0;
+    }
+    .colour-picker::-webkit-color-swatch-wrapper { padding: 0; }
+    .colour-picker::-webkit-color-swatch { border: none; border-radius: 2px; }
+    .colour-hex-input {
+      flex: 1;
+      background: #060a0c;
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      padding: 0.45rem 0.6rem;
+      font-family: monospace;
+      font-size: 0.55rem;
+      letter-spacing: 0.1em;
+      color: var(--lit);
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .colour-hex-input:focus { border-color: var(--accent); }
+    .colour-desc {
+      font-family: var(--font-body);
+      font-size: 0.62rem;
+      color: var(--lit-dim);
+      line-height: 1.6;
+      min-height: 2.5rem;
+      font-style: italic;
+      transition: opacity 0.2s;
+    }
+    .colour-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+    }
+    .colour-tag {
+      font-family: monospace;
+      font-size: 0.4rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--lit-faint);
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      padding: 0.2rem 0.45rem;
+    }
+
+    /* ══════════════════════════════
+       DISPENSE TRAY + FOOTER
+    ══════════════════════════════ */
+    .dispense-tray {
+      position: relative;
+      z-index: 2;
+      margin: 1.5rem 1.5rem 0;
+      background: #060a0c;
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      padding: 0.65rem 1rem;
       display: flex;
       align-items: center;
       justify-content: space-between;
       opacity: 0;
-      animation: fadeIn 0.5s ease 1.1s forwards;
+      animation: fadeIn 0.6s ease 1.1s forwards;
     }
-
-    .footer-dept {
-      font-family: var(--font-sub);
-      font-size: 0.75rem;
-      color: var(--ink);
-      line-height: 1.4;
-    }
-    .footer-dept span {
-      display: block;
+    .tray-label {
       font-family: monospace;
-      font-size: 0.42rem;
-      color: var(--ink-faint);
-      letter-spacing: 0.16em;
+      font-size: 0.44rem;
+      letter-spacing: 0.15em;
       text-transform: uppercase;
-      margin-top: 0.1rem;
+      color: var(--lit-faint);
+    }
+    .tray-status {
+      font-family: monospace;
+      font-size: 0.44rem;
+      letter-spacing: 0.1em;
+      color: var(--accent);
     }
 
-    .footer-stamp {
-      font-family: monospace;
-      font-size: 0.55rem;
-      color: var(--red);
-      letter-spacing: 0.12em;
-      border: 2px solid var(--red);
-      padding: 0.3em 0.7em;
-      transform: rotate(-3deg);
-      opacity: 0.7;
+    .lab-footer {
+      position: relative;
+      z-index: 2;
+      margin: 1.5rem 1.5rem 0;
+      padding: 1rem 0;
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
     }
+    .footer-mark {
+      font-family: var(--font-sub);
+      font-size: 0.85rem;
+      color: var(--lit-faint);
+    }
+    .footer-meta {
+      font-family: monospace;
+      font-size: 0.44rem;
+      letter-spacing: 0.1em;
+      color: var(--lit-faint);
+    }
+
+    .page-pad { height: 6rem; }
 
     /* ── Animations ── */
     @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(6px); }
+      from { opacity: 0; transform: translateY(8px); }
       to   { opacity: 1; transform: translateY(0); }
     }
     @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50%       { opacity: 0.3; }
+      0%,100% { opacity: 1; }
+      50%      { opacity: 0.3; }
     }
   </style>
 </head>
 <body>
 
-<a class="back-link" href="../../index.html">← The Laboratory</a>
+  <a class="back-link" href="../../index.html">← The Laboratory</a>
 
-<div class="page">
+  <!-- ══ MACHINE HEADER ══ -->
+  <div class="machine-header">
+    <div class="display-panel">
+      <div class="display-inner">
+        <p class="display-eyebrow">// INLT · Utility Dispensary · Unit 01</p>
+        <h1 class="display-title">Tools<span class="display-cursor"></span></h1>
+        <p class="display-sub">Tiny, focused utilities. Built because the alternative was doing nothing.</p>
+      </div>
+    </div>
+    <div class="machine-status">
+      <div class="status-chip">
+        <span class="chip-dot"></span>
+        <span class="chip-text">Machine Online</span>
+      </div>
+      <div class="status-chip">
+        <span class="chip-text" id="slotCount">— slots loaded</span>
+      </div>
+      <span class="coin-slot">No coins required</span>
+    </div>
+  </div>
 
-  <!-- Header -->
-  <header class="page-header">
-    <div class="header-sign">Tools</div>
-    <p class="header-sub">Tiny, focused utilities. Built because the alternative was doing nothing.</p>
-  </header>
+  <!-- ══ VENDING SLOTS ══ -->
+  <div class="slots-section">
+    <p class="slots-label">// select a tool</p>
+    <div class="machine-glass">
+      <div class="slots-grid" id="slotsGrid"></div>
+    </div>
+  </div>
 
-  <!-- Tray system -->
-  <div class="tray-system" id="traySystem"></div>
-
-  <!-- Clipboard summary -->
-  <div class="clipboard">
-    <div class="clipboard-clip"></div>
-    <div class="clipboard-board">
-      <div class="clipboard-label">// inventory — tools section</div>
-      <div class="chart-row">
-        <span class="chart-row-label">total items</span>
-        <span class="chart-row-val" id="totalCount">—</span>
+  <!-- ══ EMBEDDED TOOL — COLOUR NAMER ══ -->
+  <div class="tool-embed">
+    <p class="tool-embed-label">
+      <span class="embed-live-dot"></span>
+      tool preview — slot T-001 · Colour Namer · live
+    </p>
+    <div class="tool-embed-box">
+      <div class="tool-embed-top">
+        <span class="tool-embed-name">Colour Namer</span>
+        <span class="tool-embed-slot">T-001</span>
       </div>
-      <div class="chart-row">
-        <span class="chart-row-label">status: running</span>
-        <span class="chart-row-val" id="runningCount">—</span>
-      </div>
-      <div class="chart-row">
-        <span class="chart-row-label">status: wip</span>
-        <span class="chart-row-val" id="wipCount">—</span>
-      </div>
-      <div class="chart-row">
-        <span class="chart-row-label">status: abandoned</span>
-        <span class="chart-row-val" id="abandonedCount">—</span>
-      </div>
-      <div class="chart-row">
-        <span class="chart-row-label">last reviewed</span>
-        <span class="chart-row-val">never</span>
-      </div>
-      <div class="chart-row">
-        <span class="chart-row-label">responsible party</span>
-        <span class="chart-row-val">one person. unclear desk.</span>
+      <div class="tool-embed-body">
+        <div class="colour-swatch-large" id="colourSwatch"></div>
+        <div>
+          <div class="colour-name-display" id="colourName">Pick a colour</div>
+          <div class="colour-hex-display" id="colourHex">#——————</div>
+        </div>
+        <div class="colour-input-row">
+          <input type="color" class="colour-picker" id="colourPicker" value="#4a9acc" />
+          <input type="text"  class="colour-hex-input" id="colourHexInput" value="#4a9acc" maxlength="7" placeholder="#000000" />
+        </div>
+        <div class="colour-desc" id="colourDesc">
+          Enter a hex value or use the picker to name your colour.
+        </div>
+        <div class="colour-tags" id="colourTags"></div>
       </div>
     </div>
   </div>
 
-  <!-- Footer -->
-  <footer class="page-footer">
-    <div class="footer-dept">
-      Tools &amp; Utilities
-      <span>INLT &nbsp;·&nbsp; SECTION 03 &nbsp;·&nbsp; SUPPLY ROOM</span>
-    </div>
-    <div class="footer-stamp">WIP</div>
-  </footer>
+  <!-- ══ DISPENSE TRAY ══ -->
+  <div class="dispense-tray">
+    <span class="tray-label">// dispense tray</span>
+    <span class="tray-status" id="trayStatus">Awaiting selection</span>
+  </div>
 
-</div>
+  <footer class="lab-footer">
+    <div class="footer-mark">Tools / INLT</div>
+    <div class="footer-meta">all tools free · all tools small · all tools intentional</div>
+  </footer>
+  <div class="page-pad"></div>
 
 <script>
-// ═══════════════════════════════════════════════
-//  TOOL REGISTRY
-// ═══════════════════════════════════════════════
+// ═══════════════════════════════
+//  TOOLS REGISTRY
+// ═══════════════════════════════
 const TOOLS = [
   {
-    id:     'T-001',
-    icon:   '⬜',
-    title:  'Tool Slot 01',
-    desc:   'Something small and focused. Purpose to be determined.',
-    status: 'wip',
-    slug:   null,
+    id: 'T-001',
+    name: 'Colour Namer',
+    desc: 'Give any hex code a human name.',
+    status: 'running',
+    icon: '🎨',
+    slug: 'colour-namer',
+    barcode: '4900010',
   },
   {
-    id:     'T-002',
-    icon:   '⬜',
-    title:  'Tool Slot 02',
-    desc:   'Utility in progress. Solves a problem. Probably.',
+    id: 'T-002',
+    name: 'Word Counter',
+    desc: 'Counts words. Nothing more.',
     status: 'wip',
-    slug:   null,
+    icon: '📝',
+    slug: null,
+    barcode: '4900020',
   },
   {
-    id:     'T-003',
-    icon:   '⬜',
-    title:  'Tool Slot 03',
-    desc:   'Concept noted. Implementation pending further thought.',
+    id: 'T-003',
+    name: 'Contrast Checker',
+    desc: 'Tells you if two colours hate each other.',
     status: 'wip',
-    slug:   null,
+    icon: '◑',
+    slug: null,
+    barcode: '4900030',
   },
   {
-    id:     'T-004',
-    icon:   '⬜',
-    title:  'Tool Slot 04',
-    desc:   'Filed under: things that would be useful. Unbuilt.',
+    id: 'T-004',
+    name: 'Timestamp',
+    desc: 'Converts the current moment into something unreadable.',
     status: 'wip',
-    slug:   null,
+    icon: '⏱',
+    slug: null,
+    barcode: '4900040',
   },
   {
-    id:     'T-005',
-    icon:   '⬜',
-    title:  'Tool Slot 05',
-    desc:   'Reserved. Reason unclear. Do not remove.',
+    id: 'T-005',
+    name: 'Noise Maker',
+    desc: 'Generates SVG noise textures on demand.',
     status: 'wip',
-    slug:   null,
+    icon: '▒',
+    slug: null,
+    barcode: '4900050',
   },
   {
-    id:     'T-006',
-    icon:   '⬜',
-    title:  'Tool Slot 06',
-    desc:   'Emergency slot. In case something gets built unexpectedly.',
-    status: 'wip',
-    slug:   null,
+    id: 'T-006',
+    name: '—',
+    desc: '',
+    status: 'empty',
+    icon: '',
+    slug: null,
+    barcode: '0000000',
   },
 ];
 
-// ═══════════════════════════════════════════════
-//  RENDER TRAYS
-// ═══════════════════════════════════════════════
-const system  = document.getElementById('traySystem');
+// ═══════════════════════════════
+//  BUILD SLOTS
+// ═══════════════════════════════
+const grid = document.getElementById('slotsGrid');
+document.getElementById('slotCount').textContent =
+  `${TOOLS.filter(t => t.status !== 'empty').length} tools loaded`;
 
-// Indicator light per status
-function lightClass(status) {
-  if (status === 'running')   return 'green';
-  if (status === 'wip')       return 'amber';
-  if (status === 'abandoned') return 'red';
-  return 'off';
+function makeBars(seed) {
+  const bars = [];
+  let s = parseInt(seed, 10) || 1234567;
+  for (let i = 0; i < 28; i++) {
+    s = (s * 1664525 + 1013904223) & 0xffffffff;
+    const h = 6 + (Math.abs(s) % 9);
+    bars.push(`<div class="bar" style="height:${h}px"></div>`);
+  }
+  return bars.join('');
 }
 
 TOOLS.forEach((tool, i) => {
-  const wrapper = document.createElement(tool.slug ? 'a' : 'div');
-  if (tool.slug) {
-    wrapper.href      = `./${tool.slug}/index.html`;
-    wrapper.className = 'tray-link';
-  }
+  const slot = document.createElement('div');
+  slot.className = 'slot';
+  slot.style.opacity = '0';
+  slot.style.animation = `fadeIn 0.5s ease ${0.4 + i * 0.07}s forwards`;
 
-  const tray = document.createElement('div');
-  tray.className = 'tray-unit';
-  tray.style.animationDelay = `${0.35 + i * 0.1}s`;
-
-  tray.innerHTML = `
-    <div class="tray-header">
-      <span class="tray-id">${tool.id} &nbsp;·&nbsp; storage tray</span>
-      <div class="tray-indicator">
-        <div class="indicator-light ${lightClass(tool.status)}"></div>
-      </div>
-    </div>
-    <div class="tray-body">
-      <div class="item-slot">${tool.icon}</div>
-      <div class="item-info">
-        <div class="item-name">${tool.title}</div>
-        <p class="item-desc">${tool.desc}</p>
-        <div class="item-chart">
-          <span class="chart-tag status-${tool.status}">${tool.status}</span>
-          <span class="chart-tag">section 03</span>
-          ${tool.slug ? '<span class="chart-tag">→ open</span>' : '<span class="chart-tag">no access</span>'}
+  if (tool.status === 'empty') {
+    slot.innerHTML = `
+      <div class="slot-num">${String(i + 1).padStart(2, '0')}</div>
+      <div class="slot-empty-label">[ empty ]</div>
+    `;
+  } else {
+    const statusLabel = tool.status === 'running' ? 'available' : 'coming soon';
+    slot.innerHTML = `
+      <div class="slot-num">${tool.id}</div>
+      <div class="blister-pack">
+        <div class="blister-card">
+          <div class="blister-brand">INLT Tools</div>
+          <div class="blister-name">${tool.name}</div>
+        </div>
+        <div class="blister-bubble">
+          <div class="blister-icon">${tool.icon}</div>
+        </div>
+        <div class="blister-lower">
+          <div class="blister-desc">${tool.desc}</div>
+          <div class="blister-barcode">
+            <div class="barcode-lines">${makeBars(tool.barcode)}</div>
+            <div class="barcode-num">${tool.barcode}</div>
+          </div>
         </div>
       </div>
-    </div>
-  `;
+      <div class="slot-status">
+        <span class="slot-dot ${tool.status}"></span>
+        <span class="slot-status-text">${statusLabel}</span>
+      </div>
+    `;
 
-  if (tool.slug) {
-    wrapper.appendChild(tray);
-    system.appendChild(wrapper);
-  } else {
-    system.appendChild(tray);
+    slot.addEventListener('click', () => {
+      if (tool.status === 'running' && tool.slug) {
+        // Dispense animation then navigate
+        slot.classList.add('dispensing');
+        document.getElementById('trayStatus').textContent = `Dispensing ${tool.name}...`;
+        setTimeout(() => {
+          window.location.href = `./${tool.slug}/index.html`;
+        }, 600);
+      } else {
+        // Dispense animation then show "out of stock"
+        slot.classList.add('dispensing');
+        document.getElementById('trayStatus').textContent =
+          `${tool.name} — not yet stocked.`;
+        setTimeout(() => slot.classList.remove('dispensing'), 500);
+      }
+    });
   }
+
+  grid.appendChild(slot);
 });
 
-// ── Inventory counts
-document.getElementById('totalCount').textContent     = TOOLS.length;
-document.getElementById('runningCount').textContent   = TOOLS.filter(t => t.status === 'running').length;
-document.getElementById('wipCount').textContent       = TOOLS.filter(t => t.status === 'wip').length;
-document.getElementById('abandonedCount').textContent = TOOLS.filter(t => t.status === 'abandoned').length;
+// ═══════════════════════════════
+//  COLOUR NAMER TOOL
+// ═══════════════════════════════
+const COLOUR_NAMES = {
+  // Reds
+  'ff0000': 'Pure Red',       'cc0000': 'Lab Alert',      'aa2222': 'Dried Rose',
+  'ff4444': 'Signal Red',     'ff8888': 'Washed Coral',   'cc4444': 'Terracotta Dusk',
+  // Oranges
+  'ff8800': 'Warning Orange', 'ff6600': 'Sunset Circuit', 'cc6622': 'Aged Solder',
+  'ffaa44': 'Amber Reading',  'c8952a': 'Laboratory Gold','b8913a': 'Ochre Archive',
+  // Yellows
+  'ffff00': 'Flat Yellow',    'f5d800': 'Hazard Tape',    'eecc44': 'Old Instruction',
+  // Greens
+  '00ff00': 'Raw Terminal',   '4aff4a': 'Screen Phosphor','2a8a4a': 'Muted Sage',
+  '2a9a5a': 'Specimen Moss',  '6a8f6e': 'Botanical Quiet','5a7a5a': 'Occupied Green',
+  // Blues
+  '0000ff': 'Pure Signal',    '4a9acc': 'Clinical Blue',  '2255aa': 'Midnight Expo',
+  '5a7a9f': 'Slate Archive',  '3a5060': 'Deep Instrument','9ab8cc': 'Pale Readout',
+  // Purples
+  '7a3aaa': 'Ultraviolet Hum','9a5ae0': 'Lab Anomaly',    'aa88cc': 'Faded Violet',
+  // Pinks
+  'ff0088': 'Signal Bleed',   'b5717a': 'Dusty Rose',     'e06a9a': 'Worn Fuchsia',
+  // Neutrals
+  'ffffff': 'Clean Sheet',    'f8f5ef': 'Aged Paper',      'eef0f4': 'Laboratory Wall',
+  'e4e7ed': 'Surface Worn',   'c8bfaa': 'Faint Notation', '8a7f6a': 'Ink Diminished',
+  '4a3a20': 'Cork Dark',      '2a2318': 'Deep Specimen',  '1a1410': 'Almost Black',
+  '000000': 'Absolute Dark',  '0f0d0a': 'Laboratory Ink',
+  // Machine tones
+  '0a0c0e': 'Machine Void',   '0e0e0f': 'Night Surface',  '141416': 'Deep Panel',
+};
+
+const COLOUR_ADJECTIVES = [
+  'uncertain', 'warm', 'cold', 'occupying', 'eerie', 'faded', 'clinical',
+  'ambient', 'residual', 'archived', 'uncanny', 'specific', 'worn',
+];
+
+const COLOUR_NOUNS = [
+  'signal', 'surface', 'residue', 'reading', 'specimen', 'notation',
+  'archive', 'layer', 'output', 'material', 'fragment', 'trace',
+];
+
+function hexToRgb(hex) {
+  const clean = hex.replace('#', '').toLowerCase();
+  if (clean.length !== 6) return null;
+  return {
+    r: parseInt(clean.slice(0,2), 16),
+    g: parseInt(clean.slice(2,4), 16),
+    b: parseInt(clean.slice(4,6), 16),
+  };
+}
+
+function nameTone(r, g, b) {
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  const luma = 0.299*r + 0.587*g + 0.114*b;
+
+  if (luma > 240) return 'near-white';
+  if (luma < 15)  return 'near-black';
+
+  const sat = max === 0 ? 0 : (max - min) / max;
+  if (sat < 0.12) return 'neutral';
+
+  if (r > g && r > b) return r - Math.max(g,b) > 40 ? 'red' : 'warm';
+  if (g > r && g > b) return 'green';
+  if (b > r && b > g) return 'blue';
+  if (r > b && g > b) return 'yellow';
+  if (r > g && b > g) return 'purple';
+  return 'mixed';
+}
+
+function generateColourName(hex) {
+  const clean = hex.replace('#','').toLowerCase().padEnd(6,'0').slice(0,6);
+
+  // Exact match first
+  if (COLOUR_NAMES[clean]) return COLOUR_NAMES[clean];
+
+  // Closest match by Euclidean distance
+  const rgb = hexToRgb('#' + clean);
+  if (!rgb) return 'Unknown Value';
+
+  let closest = null, closestDist = Infinity;
+  for (const [key, name] of Object.entries(COLOUR_NAMES)) {
+    const kRgb = hexToRgb('#' + key);
+    if (!kRgb) continue;
+    const dist = Math.sqrt(
+      (rgb.r - kRgb.r)**2 + (rgb.g - kRgb.g)**2 + (rgb.b - kRgb.b)**2
+    );
+    if (dist < closestDist) { closestDist = dist; closest = name; }
+  }
+  if (closestDist < 30) return closest + ' (approx.)';
+
+  // Procedural fallback
+  const tone = nameTone(rgb.r, rgb.g, rgb.b);
+  const seed = rgb.r * 3 + rgb.g * 7 + rgb.b * 11;
+  const adj  = COLOUR_ADJECTIVES[seed % COLOUR_ADJECTIVES.length];
+  const noun = COLOUR_NOUNS[(seed * 3) % COLOUR_NOUNS.length];
+  return `${adj.charAt(0).toUpperCase() + adj.slice(1)} ${noun}`;
+}
+
+function generateDesc(hex, name) {
+  const rgb = hexToRgb(hex);
+  if (!rgb) return '';
+  const luma  = Math.round(0.299*rgb.r + 0.587*rgb.g + 0.114*rgb.b);
+  const tone  = nameTone(rgb.r, rgb.g, rgb.b);
+  const descs = {
+    'near-white': [`Barely there. ${luma}/255.`, `Almost nothing. Still something.`, `The edge of visible.`],
+    'near-black': [`Absorbs almost everything.`, `A surface that gives nothing back.`, `${255-luma} units from nothing.`],
+    'neutral':    [`Carries no allegiance.`, `A background that knows its place.`, `Neither warm nor cold. Just present.`],
+    'red':        [`Demands attention. Will get it.`, `Urgent. Possibly by design.`, `The colour of something not right.`],
+    'warm':       [`Warm. Slightly off. Occupied.`, `The colour of old equipment left running.`, `Worn and specific.`],
+    'green':      [`Terminal green. Something is running.`, `The colour of nominal.`, `A status that hasn't changed.`],
+    'blue':       [`Clinical. Lit from inside.`, `The colour of something measured.`, `A reading, not a feeling.`],
+    'yellow':     [`Cautionary. Possibly intentional.`, `The colour of things you shouldn't ignore.`, `Bright enough to be a warning.`],
+    'purple':     [`An anomaly. Logged but unexplained.`, `Outside the standard palette.`, `The colour of something uncategorised.`],
+    'mixed':      [`Resists classification.`, `Between categories, deliberately.`, `No exact name. That's fine.`],
+  };
+  const arr  = descs[tone] || descs['mixed'];
+  const seed = rgb.r + rgb.g * 2 + rgb.b * 3;
+  return arr[seed % arr.length];
+}
+
+function generateTags(hex) {
+  const rgb = hexToRgb(hex);
+  if (!rgb) return [];
+  const luma = Math.round(0.299*rgb.r + 0.587*rgb.g + 0.114*rgb.b);
+  const tags = [];
+  tags.push(luma > 128 ? 'light' : 'dark');
+  const max = Math.max(rgb.r, rgb.g, rgb.b);
+  const sat  = max === 0 ? 0 : (max - Math.min(rgb.r, rgb.g, rgb.b)) / max;
+  tags.push(sat > 0.5 ? 'saturated' : sat > 0.15 ? 'muted' : 'neutral');
+  tags.push(`luma:${luma}`);
+  tags.push(nameTone(rgb.r, rgb.g, rgb.b));
+  return tags;
+}
+
+const picker     = document.getElementById('colourPicker');
+const hexInput   = document.getElementById('colourHexInput');
+const swatchEl   = document.getElementById('colourSwatch');
+const nameEl     = document.getElementById('colourName');
+const hexDisplay = document.getElementById('colourHex');
+const descEl     = document.getElementById('colourDesc');
+const tagsEl     = document.getElementById('colourTags');
+
+function applyColour(hex) {
+  const clean = hex.replace('#','').toLowerCase();
+  if (!/^[0-9a-f]{6}$/.test(clean)) return;
+  const full = '#' + clean;
+
+  swatchEl.style.background = full;
+  nameEl.style.opacity = '0';
+  descEl.style.opacity  = '0';
+
+  setTimeout(() => {
+    const name = generateColourName(full);
+    nameEl.textContent  = name;
+    hexDisplay.textContent = full.toUpperCase();
+    descEl.textContent  = generateDesc(full, name);
+
+    const tags = generateTags(full);
+    tagsEl.innerHTML = tags.map(t => `<span class="colour-tag">${t}</span>`).join('');
+
+    nameEl.style.opacity = '1';
+    descEl.style.opacity  = '1';
+  }, 150);
+
+  picker.value   = full;
+  hexInput.value = full;
+}
+
+picker.addEventListener('input', () => applyColour(picker.value));
+hexInput.addEventListener('input', () => {
+  const v = hexInput.value.trim();
+  if (v.length === 7 && v.startsWith('#')) applyColour(v);
+  if (v.length === 6 && !v.startsWith('#')) applyColour('#' + v);
+});
+hexInput.addEventListener('keydown', e => {
+  if (e.key === 'Enter') applyColour(hexInput.value.trim());
+});
+
+// Boot with default
+applyColour('#4a9acc');
 </script>
 </body>
 </html>

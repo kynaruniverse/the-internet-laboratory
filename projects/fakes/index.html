@@ -19,14 +19,20 @@
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --bg:        #080a0f;
-      --glass:     rgba(255,255,255,0.03);
-      --glass-hi:  rgba(255,255,255,0.07);
-      --border:    rgba(255,255,255,0.07);
-      --border-hi: rgba(255,255,255,0.14);
-      --text:      #e8e0d0;
-      --text-dim:  #7a7268;
-      --text-faint:#3a3830;
+      --bg:        #0e0e0f;
+      --surface:   #141416;
+      --border:    #252528;
+      --carpet:    #1a1018;
+      --text:      #e8e4dc;
+      --text-dim:  #7a7468;
+      --text-faint:#3a3630;
+      --expo-red:  #cc2233;
+      --expo-gold: #c8952a;
+      --expo-blue: #2255aa;
+      --booth-1:   #1e0e0a;
+      --booth-2:   #0a0e1a;
+      --booth-3:   #0a1a0e;
+      --booth-4:   #1a150a;
       --font-body: 'Pangolin', cursive;
       --font-sub:  'Walter Turncoat', cursive;
     }
@@ -34,33 +40,61 @@
     html, body {
       min-height: 100%;
       background: var(--bg);
+      color: var(--text);
       font-family: var(--font-body);
       overflow-x: hidden;
-      color: var(--text);
     }
 
-    /* ── Rain canvas ── */
-    #rain-canvas {
-      position: fixed;
-      inset: 0;
-      pointer-events: none;
-      z-index: 1;
-      opacity: 0.35;
-    }
-
-    /* ── Neon flicker ambient ── */
-    #neon-canvas {
-      position: fixed;
-      inset: 0;
+    /* ── Carpet texture ── */
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background-image:
+        repeating-linear-gradient(
+          45deg,
+          rgba(80,40,60,0.04) 0px, rgba(80,40,60,0.04) 1px,
+          transparent 1px, transparent 8px
+        ),
+        repeating-linear-gradient(
+          -45deg,
+          rgba(40,60,80,0.03) 0px, rgba(40,60,80,0.03) 1px,
+          transparent 1px, transparent 8px
+        );
       pointer-events: none;
       z-index: 0;
+    }
+
+    /* ── Ceiling lights ── */
+    .ceiling {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      background: linear-gradient(90deg,
+        var(--expo-red) 0%, var(--expo-red) 20%,
+        var(--expo-gold) 20%, var(--expo-gold) 40%,
+        var(--expo-blue) 40%, var(--expo-blue) 60%,
+        var(--expo-gold) 60%, var(--expo-gold) 80%,
+        var(--expo-red) 80%, var(--expo-red) 100%
+      );
+      z-index: 200;
+      opacity: 0.7;
+    }
+    .ceiling-glow {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      height: 60px;
+      background: linear-gradient(180deg,
+        rgba(200,100,30,0.06) 0%,
+        transparent 100%
+      );
+      pointer-events: none;
+      z-index: 1;
     }
 
     /* ── Back link ── */
     .back-link {
       position: fixed;
-      top: 1.25rem;
-      left: 1.25rem;
+      top: 1.25rem; left: 1.25rem;
       font-family: var(--font-body);
       font-size: 0.6rem;
       letter-spacing: 0.15em;
@@ -72,511 +106,954 @@
     }
     .back-link:hover { color: var(--text); }
 
-    /* ── Page ── */
-    .page {
+    /* ── Banner ── */
+    .expo-banner {
       position: relative;
       z-index: 2;
-      max-width: 680px;
-      margin: 0 auto;
-      padding: 4.5rem 1.25rem 6rem;
-    }
-
-    /* ── Header ── */
-    .page-header {
-      margin-bottom: 2.5rem;
+      text-align: center;
+      padding: 3.5rem 1.5rem 0;
       opacity: 0;
-      animation: fadeIn 0.6s ease 0.2s forwards;
+      animation: fadeDown 0.7s ease 0.2s forwards;
     }
-
-    .header-label {
+    .banner-eyebrow {
       font-family: monospace;
       font-size: 0.52rem;
-      letter-spacing: 0.22em;
+      letter-spacing: 0.3em;
       text-transform: uppercase;
-      color: var(--text-faint);
+      color: var(--expo-gold);
       margin-bottom: 0.6rem;
     }
-
-    .header-title {
+    .banner-title {
       font-family: var(--font-sub);
-      font-size: clamp(1.8rem, 7vw, 3rem);
+      font-size: clamp(2rem, 8vw, 4.5rem);
       font-weight: 400;
-      line-height: 1.1;
-      /* neon pink-magenta */
-      color: #ff4fa0;
-      text-shadow:
-        0 0 8px rgba(255,79,160,0.8),
-        0 0 24px rgba(255,79,160,0.4),
-        0 0 60px rgba(255,79,160,0.15);
-      animation: neonFlicker 8s ease infinite;
+      line-height: 1;
+      color: var(--text);
+      letter-spacing: 0.01em;
     }
-
-    .header-sub {
+    .banner-title em {
+      font-style: italic;
+      color: var(--expo-red);
+    }
+    .banner-sub {
+      margin-top: 0.8rem;
       font-size: 0.72rem;
       color: var(--text-dim);
-      margin-top: 0.6rem;
-      line-height: 1.6;
-      font-family: var(--font-body);
+      letter-spacing: 0.08em;
     }
 
-    /* ── Window frame ── */
-    .window-frame {
+    /* ── Ticker ── */
+    .ticker-wrap {
       position: relative;
-      border: 1px solid var(--border);
-      background: var(--glass);
-      margin-bottom: 1.5rem;
-      opacity: 0;
-      animation: fadeIn 0.6s ease 0.4s forwards;
+      z-index: 2;
+      margin: 1.5rem 0 0;
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      background: #0a0a0b;
+      overflow: hidden;
+      height: 28px;
+      display: flex;
+      align-items: center;
+    }
+    .ticker-label {
+      flex-shrink: 0;
+      padding: 0 0.8rem;
+      font-family: monospace;
+      font-size: 0.5rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--expo-red);
+      border-right: 1px solid var(--border);
+      height: 100%;
+      display: flex;
+      align-items: center;
+      background: #110808;
+    }
+    .ticker-track {
+      display: flex;
+      animation: tickerScroll 28s linear infinite;
+      white-space: nowrap;
+      gap: 0;
+    }
+    .ticker-item {
+      font-family: monospace;
+      font-size: 0.52rem;
+      letter-spacing: 0.1em;
+      color: var(--text-dim);
+      padding: 0 1.5rem;
+      border-right: 1px solid var(--text-faint);
+    }
+    .ticker-item strong {
+      color: var(--expo-gold);
+      font-weight: 400;
+    }
+    @keyframes tickerScroll {
+      0%   { transform: translateX(0); }
+      100% { transform: translateX(-50%); }
     }
 
-    /* rain-streaked glass overlay */
-    .window-frame::before {
-      content: '';
+    /* ── Section row ── */
+    .section-row {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      padding: 1.75rem 1.25rem 0.75rem;
+    }
+    .section-label {
+      font-family: monospace;
+      font-size: 0.52rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+    }
+    .section-count {
+      font-family: monospace;
+      font-size: 0.5rem;
+      color: var(--text-faint);
+    }
+
+    /* ── Booth grid ── */
+    .booth-grid {
+      position: relative;
+      z-index: 2;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1px;
+      background: var(--border);
+      margin: 0 1.25rem;
+      border: 1px solid var(--border);
+    }
+    @media (min-width: 600px) {
+      .booth-grid { grid-template-columns: repeat(3, 1fr); }
+    }
+    @media (min-width: 900px) {
+      .booth-grid { grid-template-columns: repeat(4, 1fr); }
+    }
+
+    /* ── Single booth ── */
+    .booth {
+      position: relative;
+      background: var(--surface);
+      padding: 1.1rem 0.9rem 0.85rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+      min-height: 11rem;
+      cursor: pointer;
+      overflow: hidden;
+      user-select: none;
+      transition: background 0.12s;
+    }
+    .booth:nth-child(6n+1) { background: var(--booth-1); border-top: 2px solid var(--expo-red); }
+    .booth:nth-child(6n+2) { background: var(--booth-2); border-top: 2px solid var(--expo-blue); }
+    .booth:nth-child(6n+3) { background: var(--booth-3); border-top: 2px solid #2a7a4a; }
+    .booth:nth-child(6n+4) { background: var(--booth-4); border-top: 2px solid var(--expo-gold); }
+    .booth:nth-child(6n+5) { background: #0e0a1a;         border-top: 2px solid #7a3aaa; }
+    .booth:nth-child(6n+0) { background: #0a1414;         border-top: 2px solid #2a9aaa; }
+
+    /* ── Booth number badge ── */
+    .booth-num {
+      font-family: monospace;
+      font-size: 0.44rem;
+      letter-spacing: 0.15em;
+      color: var(--text-faint);
+    }
+
+    /* ── Company logo area ── */
+    .booth-logo {
+      font-family: var(--font-sub);
+      font-size: 1.05rem;
+      font-weight: 400;
+      color: var(--text);
+      line-height: 1.2;
+      flex: 1;
+      transition: opacity 0.15s;
+    }
+
+    /* ── Tagline ── */
+    .booth-tagline {
+      font-family: monospace;
+      font-size: 0.52rem;
+      letter-spacing: 0.06em;
+      color: var(--text-dim);
+      line-height: 1.5;
+      font-style: italic;
+    }
+
+    /* ── Status badge ── */
+    .booth-status {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      margin-top: auto;
+      padding-top: 0.4rem;
+    }
+    .booth-dot {
+      width: 4px; height: 4px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .booth-dot.seeking  { background: #2a9a4a; animation: pulse 2s ease infinite; }
+    .booth-dot.stealth  { background: #7a3aaa; }
+    .booth-dot.acquired { background: var(--expo-gold); }
+    .booth-dot.pivoting { background: var(--expo-red); animation: pulse 1.2s ease infinite; }
+    .booth-dot.closed   { background: #444; }
+    .booth-status-text {
+      font-family: monospace;
+      font-size: 0.44rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-faint);
+    }
+
+    /* ── Corner arrow ── */
+    .booth-arrow {
+      position: absolute;
+      bottom: 0.6rem; right: 0.7rem;
+      font-size: 0.7rem;
+      color: var(--text-faint);
+      opacity: 0;
+      transition: opacity 0.12s, transform 0.12s;
+    }
+    .booth:hover .booth-arrow {
+      opacity: 1;
+      transform: translate(2px,-2px);
+    }
+    .booth:hover { background: #1c1c20 !important; }
+
+    /* ══════════════════════════════
+       LAUNCH OVERLAY
+    ══════════════════════════════ */
+    .launch-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 500;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: #000;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s;
+    }
+    .launch-overlay.active {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    /* Splash screen */
+    .launch-splash {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1rem;
+      opacity: 0;
+      transform: scale(0.95);
+      transition: opacity 0.3s, transform 0.3s;
+    }
+    .launch-overlay.phase-splash .launch-splash {
+      opacity: 1;
+      transform: scale(1);
+    }
+    .launch-app-icon {
+      width: 72px; height: 72px;
+      border-radius: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-sub);
+      font-size: 2rem;
+      color: #fff;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+    }
+    .launch-app-name {
+      font-family: var(--font-sub);
+      font-size: 1.4rem;
+      color: #fff;
+      letter-spacing: 0.02em;
+    }
+    .launch-app-tagline {
+      font-family: monospace;
+      font-size: 0.55rem;
+      letter-spacing: 0.15em;
+      color: rgba(255,255,255,0.4);
+      text-align: center;
+      max-width: 22ch;
+    }
+
+    /* Progress bar */
+    .launch-progress-wrap {
+      width: 200px;
+      margin-top: 0.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+      opacity: 0;
+      transition: opacity 0.2s 0.3s;
+    }
+    .launch-overlay.phase-loading .launch-progress-wrap {
+      opacity: 1;
+    }
+    .launch-progress-bar {
+      width: 100%;
+      height: 3px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .launch-progress-fill {
+      height: 100%;
+      width: 0%;
+      border-radius: 2px;
+      transition: width 0.1s linear;
+    }
+    .launch-progress-label {
+      font-family: monospace;
+      font-size: 0.45rem;
+      letter-spacing: 0.1em;
+      color: rgba(255,255,255,0.25);
+      text-align: center;
+    }
+
+    /* 404 screen */
+    .launch-404 {
       position: absolute;
       inset: 0;
-      background: repeating-linear-gradient(
-        170deg,
-        transparent,
-        transparent 60px,
-        rgba(255,255,255,0.012) 60px,
-        rgba(255,255,255,0.012) 61px
-      );
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.6rem;
+      opacity: 0;
       pointer-events: none;
-      z-index: 1;
+      transition: opacity 0.3s;
+      background: #0a0005;
+    }
+    .launch-overlay.phase-404 .launch-404 {
+      opacity: 1;
+      pointer-events: all;
+    }
+    .err-code {
+      font-family: monospace;
+      font-size: clamp(3rem, 15vw, 6rem);
+      color: var(--expo-red);
+      letter-spacing: -0.02em;
+      line-height: 1;
+    }
+    .err-msg {
+      font-family: var(--font-sub);
+      font-size: 1.1rem;
+      color: rgba(255,255,255,0.6);
+      text-align: center;
+      max-width: 22ch;
+      line-height: 1.4;
+    }
+    .err-sub {
+      font-family: monospace;
+      font-size: 0.5rem;
+      letter-spacing: 0.15em;
+      color: rgba(255,255,255,0.2);
+      text-align: center;
+    }
+    .err-dismiss {
+      margin-top: 0.75rem;
+      font-family: var(--font-body);
+      font-size: 0.6rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.25);
+      background: transparent;
+      border: 1px solid rgba(255,255,255,0.12);
+      padding: 0.5rem 1.4rem;
+      cursor: pointer;
+      transition: color 0.15s, border-color 0.15s;
+    }
+    .err-dismiss:hover {
+      color: rgba(255,255,255,0.6);
+      border-color: rgba(255,255,255,0.3);
     }
 
-    .window-label {
-      padding: 0.65rem 1rem;
-      border-bottom: 1px solid var(--border);
+    /* ══════════════════════════════
+       TRADE SHOW FLOOR EXTRAS
+    ══════════════════════════════ */
+    /* Horizontal aisle divider */
+    .aisle {
+      position: relative;
+      z-index: 2;
+      margin: 0 1.25rem;
+      height: 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-left: 1px solid var(--border);
+      border-right: 1px solid var(--border);
+      background: var(--carpet);
+    }
+    .aisle-label {
+      font-family: monospace;
+      font-size: 0.42rem;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: var(--text-faint);
+    }
+
+    /* ── Visitor badge ── */
+    .visitor-badge {
+      position: relative;
+      z-index: 2;
+      margin: 1.5rem auto;
+      width: fit-content;
+      background: #fdfaf0;
+      border: 2px solid #c8b870;
+      border-radius: 4px;
+      padding: 0.8rem 1.4rem;
+      transform: rotate(-1.5deg);
+      box-shadow: 4px 6px 20px rgba(0,0,0,0.4);
+      opacity: 0;
+      animation: fadeDown 0.6s ease 0.9s forwards;
+    }
+    .visitor-badge::before {
+      content: '';
+      position: absolute;
+      top: -10px; left: 50%;
+      transform: translateX(-50%);
+      width: 20px; height: 10px;
+      background: rgba(200,184,112,0.5);
+      border-radius: 3px 3px 0 0;
+    }
+    .badge-top {
+      font-family: monospace;
+      font-size: 0.38rem;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: #a08820;
+      margin-bottom: 0.2rem;
+    }
+    .badge-name {
+      font-family: var(--font-sub);
+      font-size: 1.1rem;
+      color: #1a1408;
+      line-height: 1.1;
+    }
+    .badge-bottom {
+      font-family: monospace;
+      font-size: 0.38rem;
+      letter-spacing: 0.15em;
+      color: #c8b870;
+      margin-top: 0.2rem;
+    }
+
+    /* ══════════════════════════════
+       SHREDDER FOOTER
+    ══════════════════════════════ */
+    .shredder-section {
+      position: relative;
+      z-index: 2;
+      margin: 2rem 1.25rem 0;
+      opacity: 0;
+      animation: fadeDown 0.6s ease 1.2s forwards;
+    }
+    .shredder-label {
       font-family: monospace;
       font-size: 0.5rem;
       letter-spacing: 0.2em;
       text-transform: uppercase;
       color: var(--text-faint);
+      margin-bottom: 0.6rem;
+    }
+    .shredder-machine {
+      background: #111113;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .shredder-slot {
+      height: 28px;
+      background: #0a0a0b;
+      border-bottom: 1px solid var(--border);
       display: flex;
       align-items: center;
-      justify-content: space-between;
-    }
-
-    .window-label-dot {
-      width: 4px; height: 4px;
-      border-radius: 50%;
-      background: #ff4fa0;
-      box-shadow: 0 0 6px #ff4fa0;
-      animation: pulse 2.2s ease infinite;
-    }
-
-    /* ── Product grid ── */
-    .product-grid {
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 1px;
-      background: var(--border);
-    }
-
-    @media (min-width: 480px) {
-      .product-grid { grid-template-columns: 1fr 1fr; }
-    }
-
-    /* ── Product card ── */
-    .product-card {
-      background: var(--bg);
-      padding: 1.4rem 1.1rem 1.1rem;
-      display: flex;
-      flex-direction: column;
+      padding: 0 0.8rem;
       gap: 0.5rem;
-      min-height: 10rem;
       position: relative;
       overflow: hidden;
-      cursor: pointer;
-      text-decoration: none;
-      color: inherit;
-      transition: background 0.15s;
     }
-
-    .product-card:hover {
-      background: var(--glass-hi);
-    }
-
-    /* neon top border per card */
-    .product-card:nth-child(1) {
-      border-top: 2px solid #ff4fa0;
-      box-shadow: inset 0 2px 12px rgba(255,79,160,0.08);
-    }
-    .product-card:nth-child(2) {
-      border-top: 2px solid #4fe0ff;
-      box-shadow: inset 0 2px 12px rgba(79,224,255,0.08);
-    }
-    .product-card:nth-child(3) {
-      border-top: 2px solid #a04fff;
-      box-shadow: inset 0 2px 12px rgba(160,79,255,0.08);
-    }
-    .product-card:nth-child(4) {
-      border-top: 2px solid #ff9f40;
-      box-shadow: inset 0 2px 12px rgba(255,159,64,0.08);
-    }
-    .product-card:nth-child(5) {
-      border-top: 2px solid #40ff9f;
-      box-shadow: inset 0 2px 12px rgba(64,255,159,0.08);
-    }
-    .product-card:nth-child(6) {
-      border-top: 2px solid #ff4fa0;
-      box-shadow: inset 0 2px 12px rgba(255,79,160,0.08);
-    }
-
-    /* neon glow on hover per card */
-    .product-card:nth-child(1):hover { box-shadow: inset 0 2px 24px rgba(255,79,160,0.14), 0 0 0 1px rgba(255,79,160,0.12); }
-    .product-card:nth-child(2):hover { box-shadow: inset 0 2px 24px rgba(79,224,255,0.14), 0 0 0 1px rgba(79,224,255,0.12); }
-    .product-card:nth-child(3):hover { box-shadow: inset 0 2px 24px rgba(160,79,255,0.14), 0 0 0 1px rgba(160,79,255,0.12); }
-    .product-card:nth-child(4):hover { box-shadow: inset 0 2px 24px rgba(255,159,64,0.14), 0 0 0 1px rgba(255,159,64,0.12); }
-    .product-card:nth-child(5):hover { box-shadow: inset 0 2px 24px rgba(64,255,159,0.14), 0 0 0 1px rgba(64,255,159,0.12); }
-    .product-card:nth-child(6):hover { box-shadow: inset 0 2px 24px rgba(255,79,160,0.14), 0 0 0 1px rgba(255,79,160,0.12); }
-
-    .card-num {
-      font-family: monospace;
-      font-size: 0.45rem;
-      color: var(--text-faint);
-      letter-spacing: 0.18em;
-    }
-
-    .card-name {
-      font-family: var(--font-sub);
-      font-size: 1.05rem;
-      font-weight: 400;
-      line-height: 1.2;
-      color: var(--text);
-    }
-
-    .card-desc {
-      font-size: 0.65rem;
-      color: var(--text-dim);
-      line-height: 1.55;
-      flex: 1;
-    }
-
-    .card-status-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-top: auto;
-    }
-
-    .card-badge {
+    .shredder-slot-label {
       font-family: monospace;
       font-size: 0.44rem;
-      letter-spacing: 0.14em;
-      text-transform: uppercase;
-      padding: 0.2em 0.55em;
-      border-radius: 2px;
-    }
-    .card-badge.wip {
-      background: rgba(255,159,64,0.1);
-      border: 1px solid rgba(255,159,64,0.25);
-      color: #ff9f40;
-    }
-    .card-badge.running {
-      background: rgba(64,255,159,0.1);
-      border: 1px solid rgba(64,255,159,0.25);
-      color: #40ff9f;
-    }
-    .card-badge.abandoned {
-      background: rgba(120,120,120,0.1);
-      border: 1px solid rgba(120,120,120,0.2);
-      color: #888;
-    }
-
-    .card-arrow {
-      font-size: 0.75rem;
+      letter-spacing: 0.15em;
       color: var(--text-faint);
-      opacity: 0;
-      transition: opacity 0.12s, transform 0.12s;
+      flex-shrink: 0;
     }
-    .product-card:hover .card-arrow {
-      opacity: 1;
-      transform: translate(2px, -2px);
+    /* Documents feeding in */
+    .shred-doc {
+      position: absolute;
+      right: -120px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: #fdfaf0;
+      height: 16px;
+      border-radius: 1px;
+      font-family: monospace;
+      font-size: 0.38rem;
+      color: #333;
+      display: flex;
+      align-items: center;
+      padding: 0 0.4rem;
+      white-space: nowrap;
+      letter-spacing: 0.05em;
+      animation: docFeed linear forwards;
+      box-shadow: 1px 1px 3px rgba(0,0,0,0.3);
+    }
+    @keyframes docFeed {
+      0%   { right: -140px; opacity: 1; }
+      60%  { opacity: 1; }
+      80%  { opacity: 0.4; }
+      100% { right: 10px; opacity: 0; }
     }
 
-    /* ── Street reflection strip ── */
-    .reflection {
-      height: 3px;
-      background: linear-gradient(
-        90deg,
-        transparent 0%,
-        rgba(255,79,160,0.4) 20%,
-        rgba(79,224,255,0.4) 50%,
-        rgba(160,79,255,0.3) 80%,
-        transparent 100%
-      );
-      margin-bottom: 2rem;
-      opacity: 0;
-      animation: fadeIn 0.6s ease 0.6s forwards;
-      filter: blur(1px);
-    }
-
-    /* ── Footer ── */
-    .page-footer {
-      opacity: 0;
-      animation: fadeIn 0.6s ease 1s forwards;
+    /* Shredder body */
+    .shredder-body {
+      padding: 0.6rem 0.8rem;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding-top: 1.5rem;
-      border-top: 1px solid var(--border);
     }
-
-    .footer-id {
+    .shredder-status {
       font-family: monospace;
-      font-size: 0.45rem;
-      color: var(--text-faint);
-      letter-spacing: 0.14em;
-      text-transform: uppercase;
-      line-height: 1.8;
+      font-size: 0.44rem;
+      letter-spacing: 0.12em;
+      color: #2a6a2a;
+    }
+    .shredder-counter {
+      font-family: monospace;
+      font-size: 0.52rem;
+      color: var(--expo-red);
+      letter-spacing: 0.1em;
     }
 
-    .footer-neon {
-      font-family: var(--font-sub);
-      font-size: 0.7rem;
-      color: #ff4fa0;
-      text-shadow: 0 0 8px rgba(255,79,160,0.6);
-      animation: neonFlicker 6s ease infinite 1s;
+    /* Shredded strips output */
+    .shredder-output {
+      height: 40px;
+      background: #080808;
+      border-top: 1px solid #1a1a1a;
+      position: relative;
+      overflow: hidden;
     }
+    .shred-strip {
+      position: absolute;
+      top: 0;
+      width: 3px;
+      background: #fdfaf0;
+      opacity: 0;
+      animation: stripFall linear forwards;
+    }
+    @keyframes stripFall {
+      0%   { top: -40px; opacity: 0.6; }
+      100% { top: 100%; opacity: 0.1; }
+    }
+
+    /* ── Footer bar ── */
+    .footer-bar {
+      position: relative;
+      z-index: 2;
+      margin: 0 1.25rem;
+      padding: 1rem 0;
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .footer-mark {
+      font-family: var(--font-sub);
+      font-size: 0.85rem;
+      color: var(--text-faint);
+    }
+    .footer-meta {
+      font-family: monospace;
+      font-size: 0.44rem;
+      letter-spacing: 0.12em;
+      color: var(--text-faint);
+    }
+
+    .page-pad { height: 6rem; }
 
     /* ── Animations ── */
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(8px); }
+    @keyframes fadeDown {
+      from { opacity: 0; transform: translateY(-8px); }
       to   { opacity: 1; transform: translateY(0); }
     }
-
     @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50%       { opacity: 0.2; }
-    }
-
-    @keyframes neonFlicker {
-      0%, 92%, 96%, 100% { opacity: 1; }
-      93%                { opacity: 0.4; }
-      94%                { opacity: 1; }
-      95%                { opacity: 0.2; }
-      97%                { opacity: 0.85; }
+      0%,100% { opacity: 1; }
+      50%      { opacity: 0.3; }
     }
   </style>
 </head>
 <body>
 
-<canvas id="neon-canvas"></canvas>
-<canvas id="rain-canvas"></canvas>
+  <div class="ceiling"></div>
+  <div class="ceiling-glow"></div>
 
-<a class="back-link" href="../../index.html">← The Laboratory</a>
+  <a class="back-link" href="../../index.html">← The Laboratory</a>
 
-<div class="page">
-
-  <header class="page-header">
-    <p class="header-label">// fakes &nbsp;·&nbsp; section 02</p>
-    <h1 class="header-title">Fake Products</h1>
-    <p class="header-sub">Startups that will never launch. Landing pages for things that don't exist. Built as if real.</p>
-  </header>
-
-  <div class="window-frame">
-    <div class="window-label">
-      <span>// display window &nbsp;·&nbsp; <span id="cardCount">0</span> products</span>
-      <span class="window-label-dot"></span>
-    </div>
-    <div class="product-grid" id="productGrid"></div>
+  <!-- ── Banner ── -->
+  <div class="expo-banner">
+    <p class="banner-eyebrow">// INLT Trade Expo · Hall B · Floor 2</p>
+    <h1 class="banner-title">Fake<em>s</em></h1>
+    <p class="banner-sub">Startups that will never launch. Products that don't exist. Booths nobody staffed.</p>
   </div>
 
-  <div class="reflection"></div>
-
-  <footer class="page-footer">
-    <div class="footer-id">
-      INLT &nbsp;·&nbsp; SECTION 02<br>
-      FAKES &nbsp;·&nbsp; DISPLAY WINDOW<br>
-      STATUS: <span style="color:#ff4fa0">OPEN</span>
+  <!-- ── Ticker ── -->
+  <div class="ticker-wrap">
+    <div class="ticker-label">LIVE</div>
+    <div class="ticker-track" id="tickerTrack">
+      <!-- injected by JS, doubled for seamless loop -->
     </div>
-    <div class="footer-neon">OPEN 24H</div>
-  </footer>
+  </div>
 
-</div>
+  <!-- ── Visitor badge ── -->
+  <div class="visitor-badge">
+    <p class="badge-top">INLT Expo 2024 · Visitor Pass</p>
+    <p class="badge-name">Welcome,<br>Curious Person</p>
+    <p class="badge-bottom">No investment required · Or expected</p>
+  </div>
+
+  <!-- ── Section row ── -->
+  <div class="section-row">
+    <span class="section-label">// exhibitor directory</span>
+    <span class="section-count" id="boothCount">— booths</span>
+  </div>
+
+  <!-- ── Booth grid ── -->
+  <div class="booth-grid" id="boothGrid"></div>
+
+  <!-- ── Aisle divider ── -->
+  <div class="aisle">
+    <span class="aisle-label">· · · aisle b · · ·</span>
+  </div>
+
+  <!-- ── Shredder footer ── -->
+  <div class="shredder-section">
+    <p class="shredder-label">// document disposal</p>
+    <div class="shredder-machine">
+      <div class="shredder-slot" id="shredSlot">
+        <span class="shredder-slot-label">FEED →</span>
+      </div>
+      <div class="shredder-body">
+        <span class="shredder-status" id="shredStatus">● READY</span>
+        <span class="shredder-counter" id="shredCounter">0 documents destroyed</span>
+      </div>
+      <div class="shredder-output" id="shredOutput"></div>
+    </div>
+  </div>
+
+  <div class="footer-bar">
+    <div class="footer-mark">Fakes / INLT</div>
+    <div class="footer-meta">all products fictional · all pitches sincere</div>
+  </div>
+  <div class="page-pad"></div>
+
+  <!-- ══ LAUNCH OVERLAY ══ -->
+  <div class="launch-overlay" id="launchOverlay">
+    <div class="launch-splash" id="launchSplash">
+      <div class="launch-app-icon" id="launchIcon">?</div>
+      <div class="launch-app-name" id="launchName">—</div>
+      <div class="launch-app-tagline" id="launchTagline">—</div>
+      <div class="launch-progress-wrap" id="launchProgressWrap">
+        <div class="launch-progress-bar">
+          <div class="launch-progress-fill" id="launchFill" style="background:#fff"></div>
+        </div>
+        <div class="launch-progress-label" id="launchProgressLabel">Initialising...</div>
+      </div>
+    </div>
+    <div class="launch-404" id="launch404">
+      <div class="err-code">404</div>
+      <div class="err-msg" id="errMsg">This product doesn't exist yet.</div>
+      <div class="err-sub" id="errSub">REFERENCE: —</div>
+      <button class="err-dismiss" id="errDismiss">close and return</button>
+    </div>
+  </div>
 
 <script>
-// ═══════════════════════════════════════════════
-//  PRODUCT REGISTRY
-// ═══════════════════════════════════════════════
-const PRODUCTS = [
+// ═══════════════════════════════
+//  FAKES REGISTRY
+// ═══════════════════════════════
+const FAKES = [
   {
-    id: '001',
-    title: 'Slot 01',
-    desc: 'Something is being built here. Concept exists. Launch unlikely.',
-    status: 'wip',
+    id: 'B-001',
+    name: 'Voidr',
+    tagline: 'The first productivity app for people who have given up.',
+    status: 'seeking',
+    statusLabel: 'Seeking Funding',
+    icon: '∅',
+    colour: '#cc2233',
     slug: null,
+    loadMessages: ['Syncing your voids...', 'Calibrating nothing...', 'Loading emptiness...'],
   },
   {
-    id: '002',
-    title: 'Slot 02',
-    desc: 'A startup for a problem nobody has reported having.',
-    status: 'wip',
+    id: 'B-002',
+    name: 'SlowCo',
+    tagline: 'Enterprise software, but slower. Intentionally.',
+    status: 'stealth',
+    statusLabel: 'Stealth Mode',
+    icon: '🐢',
+    colour: '#2255aa',
     slug: null,
+    loadMessages: ['Processing...', 'Still processing...', 'Nearly there (est. 4-6 weeks)...'],
   },
   {
-    id: '003',
-    title: 'Slot 03',
-    desc: 'Landing page in progress. Product unclear. Vibes: strong.',
-    status: 'wip',
+    id: 'B-003',
+    name: 'Authentic™',
+    tagline: 'We sell the feeling that you made it yourself.',
+    status: 'acquired',
+    statusLabel: 'Acquired ($0)',
+    icon: 'A',
+    colour: '#2a7a4a',
     slug: null,
+    loadMessages: ['Generating authenticity...', 'Hand-crafting your experience...', 'Adding imperfections...'],
   },
   {
-    id: '004',
-    title: 'Slot 04',
-    desc: 'Filed under: 2am ideas. Status: not reviewed in daylight.',
-    status: 'wip',
+    id: 'B-004',
+    name: 'Grandma.ai',
+    tagline: 'AI that worries about you specifically.',
+    status: 'pivoting',
+    statusLabel: 'Currently Pivoting',
+    icon: '👵',
+    colour: '#c8952a',
     slug: null,
+    loadMessages: ['Checking if you ate...', 'Wondering why you never call...', 'Preparing concern...'],
   },
   {
-    id: '005',
-    title: 'Slot 05',
-    desc: 'Concept noted. Implementation deferred. Indefinitely.',
-    status: 'wip',
+    id: 'B-005',
+    name: 'Brutalist Cloud',
+    tagline: 'Raw infrastructure. No UI. No mercy.',
+    status: 'seeking',
+    statusLabel: 'Seeking Funding',
+    icon: '▓',
+    colour: '#7a3aaa',
     slug: null,
+    loadMessages: ['Exposing bare metal...', 'Removing abstractions...', 'This is the UI.'],
   },
   {
-    id: '006',
-    title: 'Slot 06',
-    desc: 'Reserved for something that does not yet exist.',
-    status: 'wip',
+    id: 'B-006',
+    name: 'Pending™',
+    tagline: 'Coming soon. Has been for three years.',
+    status: 'closed',
+    statusLabel: 'Operations Paused',
+    icon: '…',
+    colour: '#2a9aaa',
     slug: null,
+    loadMessages: ['Loading...', 'Almost...', 'Soon...'],
   },
 ];
 
-// ═══════════════════════════════════════════════
-//  RENDER CARDS
-// ═══════════════════════════════════════════════
-const grid = document.getElementById('productGrid');
-const countEl = document.getElementById('cardCount');
-countEl.textContent = PRODUCTS.length;
+// ═══════════════════════════════
+//  TICKER
+// ═══════════════════════════════
+const TICKER_ITEMS = [
+  'VOIDR · Valuation: <strong>$0</strong>',
+  'SLOWCO · Series A Closing: <strong>Delayed</strong>',
+  'AUTHENTIC™ · Units Shipped: <strong>0 (handmade)</strong>',
+  'GRANDMA.AI · Users Worried About: <strong>All of them</strong>',
+  'BRUTALIST CLOUD · Uptime: <strong>Technically running</strong>',
+  'PENDING™ · Launch Date: <strong>Soon</strong>',
+  'HALL B CAPACITY: <strong>Unclear</strong>',
+  'REFRESHMENTS: <strong>Theoretical</strong>',
+  'EXIT: <strong>Where you came in</strong>',
+];
 
-PRODUCTS.forEach(p => {
-  const card = document.createElement(p.slug ? 'a' : 'div');
-  if (p.slug) card.href = `./${p.slug}/index.html`;
-  card.className = 'product-card';
-  card.innerHTML = `
-    <div class="card-num">${p.id}</div>
-    <div class="card-name">${p.title}</div>
-    <p class="card-desc">${p.desc}</p>
-    <div class="card-status-row">
-      <span class="card-badge ${p.status}">${p.status}</span>
-      ${p.slug ? '<span class="card-arrow">↗</span>' : ''}
-    </div>
-  `;
-  grid.appendChild(card);
+const tickerTrack = document.getElementById('tickerTrack');
+// Double for seamless loop
+[...TICKER_ITEMS, ...TICKER_ITEMS].forEach(item => {
+  const el = document.createElement('span');
+  el.className = 'ticker-item';
+  el.innerHTML = item;
+  tickerTrack.appendChild(el);
 });
 
-// ═══════════════════════════════════════════════
-//  RAIN CANVAS
-// ═══════════════════════════════════════════════
-const rainCanvas = document.getElementById('rain-canvas');
-const rCtx = rainCanvas.getContext('2d');
-let RW, RH;
-const drops = [];
+// ═══════════════════════════════
+//  BUILD BOOTHS
+// ═══════════════════════════════
+const grid = document.getElementById('boothGrid');
+document.getElementById('boothCount').textContent = `${FAKES.length} exhibitors`;
 
-function initRain() {
-  RW = rainCanvas.width  = window.innerWidth;
-  RH = rainCanvas.height = window.innerHeight;
-  drops.length = 0;
-  const count = Math.floor(RW / 6);
-  for (let i = 0; i < count; i++) {
-    drops.push({
-      x:     Math.random() * RW,
-      y:     Math.random() * RH,
-      len:   8  + Math.random() * 18,
-      speed: 6  + Math.random() * 10,
-      opacity: 0.04 + Math.random() * 0.12,
-      width: 0.5 + Math.random() * 0.8,
-    });
-  }
-}
+FAKES.forEach((fake, i) => {
+  const booth = document.createElement('div');
+  booth.className = 'booth';
+  booth.style.animationDelay = `${0.35 + i * 0.07}s`;
+  booth.style.opacity = '0';
+  booth.style.animation = `fadeDown 0.5s ease ${0.35 + i * 0.07}s forwards`;
 
-function drawRain() {
-  requestAnimationFrame(drawRain);
-  rCtx.clearRect(0, 0, RW, RH);
-  for (const d of drops) {
-    rCtx.beginPath();
-    rCtx.moveTo(d.x, d.y);
-    rCtx.lineTo(d.x - 1, d.y + d.len);
-    rCtx.strokeStyle = `rgba(160,200,255,${d.opacity})`;
-    rCtx.lineWidth   = d.width;
-    rCtx.stroke();
-    d.y += d.speed;
-    if (d.y > RH) {
-      d.y = -d.len;
-      d.x = Math.random() * RW;
-    }
-  }
-}
+  booth.innerHTML = `
+    <div class="booth-num">${fake.id}</div>
+    <div class="booth-logo">${fake.name}</div>
+    <div class="booth-tagline">"${fake.tagline}"</div>
+    <div class="booth-status">
+      <span class="booth-dot ${fake.status}"></span>
+      <span class="booth-status-text">${fake.statusLabel}</span>
+    </div>
+    <span class="booth-arrow">↗</span>
+  `;
 
-initRain();
-drawRain();
+  booth.addEventListener('click', () => launchApp(fake));
+  grid.appendChild(booth);
+});
 
-// ═══════════════════════════════════════════════
-//  NEON AMBIENT CANVAS
-// ═══════════════════════════════════════════════
-const neonCanvas = document.getElementById('neon-canvas');
-const nCtx = neonCanvas.getContext('2d');
-let NW, NH;
+// ═══════════════════════════════
+//  LAUNCH SEQUENCE
+// ═══════════════════════════════
+const overlay   = document.getElementById('launchOverlay');
+const splash    = document.getElementById('launchSplash');
+const icon      = document.getElementById('launchIcon');
+const nameEl    = document.getElementById('launchName');
+const taglineEl = document.getElementById('launchTagline');
+const fill      = document.getElementById('launchFill');
+const progLabel = document.getElementById('launchProgressLabel');
+const err404    = document.getElementById('launch404');
+const errMsg    = document.getElementById('errMsg');
+const errSub    = document.getElementById('errSub');
 
-// Neon light sources — static positions, flickering intensity
-const neonLights = [
-  { x: 0.15, y: 0.1,  color: [255, 79,  160], radius: 0.35, phase: 0,    speed: 0.008 },
-  { x: 0.75, y: 0.05, color: [79,  224, 255], radius: 0.3,  phase: 1.2,  speed: 0.011 },
-  { x: 0.5,  y: 0.6,  color: [160, 79,  255], radius: 0.25, phase: 2.4,  speed: 0.007 },
-  { x: 0.9,  y: 0.4,  color: [255, 159, 64],  radius: 0.2,  phase: 0.7,  speed: 0.013 },
+const LOAD_STEPS = [
+  { pct: 12,  delay: 200  },
+  { pct: 28,  delay: 500  },
+  { pct: 47,  delay: 900  },
+  { pct: 63,  delay: 1400 },
+  { pct: 81,  delay: 1900 },
+  { pct: 94,  delay: 2400 },
+  { pct: 99,  delay: 2800 },
 ];
 
-// Flicker state — occasional dropout
-const flickerState = neonLights.map(() => ({ dropout: false, timer: 0 }));
+const ERR_MESSAGES = [
+  "This product doesn't exist yet.",
+  "The team stepped out for lunch. Since 2022.",
+  "Service unavailable. Service was always unavailable.",
+  "404: Startup not found.",
+  "This page is in stealth mode. Permanently.",
+  "Our engineers are working on it. Probably.",
+];
 
-function initNeon() {
-  NW = neonCanvas.width  = window.innerWidth;
-  NH = neonCanvas.height = window.innerHeight;
-}
+function launchApp(fake) {
+  // Reset
+  overlay.classList.remove('phase-splash', 'phase-loading', 'phase-404');
+  fill.style.width = '0%';
+  fill.style.background = fake.colour;
 
-function drawNeon() {
-  requestAnimationFrame(drawNeon);
-  nCtx.clearRect(0, 0, NW, NH);
-  nCtx.fillStyle = '#080a0f';
-  nCtx.fillRect(0, 0, NW, NH);
+  // Set content
+  icon.textContent = fake.icon;
+  icon.style.background = fake.colour + '33';
+  icon.style.border = `2px solid ${fake.colour}44`;
+  icon.style.color = fake.colour;
+  nameEl.textContent = fake.name;
+  taglineEl.textContent = `"${fake.tagline}"`;
 
-  neonLights.forEach((light, i) => {
-    light.phase += light.speed;
-    const fs = flickerState[i];
+  // Show overlay
+  overlay.classList.add('active');
+  setTimeout(() => overlay.classList.add('phase-splash'), 30);
+  setTimeout(() => overlay.classList.add('phase-loading'), 400);
 
-    // Random dropout
-    fs.timer--;
-    if (fs.timer <= 0) {
-      fs.dropout = Math.random() < 0.04;
-      fs.timer   = 20 + Math.floor(Math.random() * 80);
-    }
-    if (fs.dropout) return;
-
-    const pulse   = Math.sin(light.phase) * 0.5 + 0.5;
-    const alpha   = 0.06 + pulse * 0.08;
-    const x       = light.x * NW;
-    const y       = light.y * NH;
-    const r       = light.radius * Math.min(NW, NH);
-    const [cr, cg, cb] = light.color;
-
-    const grad = nCtx.createRadialGradient(x, y, 0, x, y, r);
-    grad.addColorStop(0,   `rgba(${cr},${cg},${cb},${alpha})`);
-    grad.addColorStop(0.5, `rgba(${cr},${cg},${cb},${alpha * 0.4})`);
-    grad.addColorStop(1,   `rgba(${cr},${cg},${cb},0)`);
-
-    nCtx.fillStyle = grad;
-    nCtx.fillRect(0, 0, NW, NH);
+  // Progress steps
+  const messages = fake.loadMessages;
+  LOAD_STEPS.forEach((step, i) => {
+    setTimeout(() => {
+      fill.style.width = step.pct + '%';
+      if (i < messages.length) progLabel.textContent = messages[i];
+    }, step.delay);
   });
+
+  // 404 after ~3.2s
+  setTimeout(() => {
+    overlay.classList.remove('phase-splash', 'phase-loading');
+    overlay.classList.add('phase-404');
+    errMsg.textContent = ERR_MESSAGES[Math.floor(Math.random() * ERR_MESSAGES.length)];
+    errSub.textContent = `REFERENCE: ${fake.id} · ${fake.name.toUpperCase()}`;
+  }, 3200);
 }
 
-initNeon();
-drawNeon();
+document.getElementById('errDismiss').addEventListener('click', () => {
+  overlay.classList.remove('active', 'phase-404');
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') overlay.classList.remove('active', 'phase-splash', 'phase-loading', 'phase-404');
+});
 
-window.addEventListener('resize', () => { initRain(); initNeon(); });
+// ═══════════════════════════════
+//  SHREDDER
+// ═══════════════════════════════
+const SHRED_DOCS = [
+  'Series_A_Deck_FINAL_v14.pdf',
+  'Business_Plan_2023.docx',
+  'Investor_Update_Q3.pdf',
+  'Pitch_Deck_Template.pptx',
+  'NDA_unsigned.pdf',
+  'Term_Sheet_Draft.docx',
+  'Product_Roadmap_CONFIDENTIAL.xlsx',
+  'User_Research_0_responses.csv',
+  'Revenue_Projections_Optimistic.xlsx',
+  'CoFounder_Agreement_abandoned.pdf',
+];
+
+let shredCount = 0;
+let shredActive = false;
+
+function shredDocument() {
+  if (shredActive) return;
+  shredActive = true;
+
+  const slot = document.getElementById('shredSlot');
+  const output = document.getElementById('shredOutput');
+  const status = document.getElementById('shredStatus');
+  const counter = document.getElementById('shredCounter');
+
+  status.textContent = '● SHREDDING';
+  status.style.color = '#cc2233';
+
+  // Feed doc animation
+  const doc = document.createElement('div');
+  doc.className = 'shred-doc';
+  doc.textContent = SHRED_DOCS[shredCount % SHRED_DOCS.length];
+  doc.style.width = `${80 + Math.random() * 60}px`;
+  doc.style.animationDuration = `${1.4 + Math.random() * 0.4}s`;
+  slot.appendChild(doc);
+
+  // Strips falling after doc feeds
+  setTimeout(() => {
+    const strips = 12 + Math.floor(Math.random() * 8);
+    for (let i = 0; i < strips; i++) {
+      setTimeout(() => {
+        const strip = document.createElement('div');
+        strip.className = 'shred-strip';
+        const w = 2 + Math.random() * 3;
+        const h = 20 + Math.random() * 20;
+        strip.style.cssText = `
+          left: ${Math.random() * 100}%;
+          width: ${w}px;
+          height: ${h}px;
+          animation-duration: ${0.5 + Math.random() * 0.4}s;
+          animation-delay: ${Math.random() * 0.2}s;
+          background: hsl(${40 + Math.random() * 20}, 40%, ${85 + Math.random() * 10}%);
+        `;
+        output.appendChild(strip);
+        strip.addEventListener('animationend', () => strip.remove());
+      }, i * 40);
+    }
+  }, 900);
+
+  setTimeout(() => {
+    doc.remove();
+    shredCount++;
+    counter.textContent = `${shredCount} document${shredCount !== 1 ? 's' : ''} destroyed`;
+    status.textContent = '● READY';
+    status.style.color = '#2a6a2a';
+    shredActive = false;
+  }, 2200);
+}
+
+// Auto-shred every 5s
+setInterval(shredDocument, 5000);
+setTimeout(shredDocument, 1800); // first shred shortly after load
 </script>
 </body>
 </html>
