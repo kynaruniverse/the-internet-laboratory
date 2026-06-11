@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Decay — The Internet Laboratory</title>
+  <style>
+    @font-face {
+      font-family: 'Pangolin';
+      src: url('../../../assets/fonts/pangolin.ttf') format('truetype');
+      font-display: swap;
+    }
+    @font-face {
+      font-family: 'Walter Turncoat';
+      src: url('../../../assets/fonts/walter-turncoat.ttf') format('truetype');
+      font-display: swap;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --paper: #f5f0e8;
+      --ink: #2a2318;
+      --ink-dim: #8a7f6a;
+      --ink-faint: #c8bfaa;
+      --accent: #a85c45;
+      --font-body: 'Pangolin', cursive;
+      --font-sub: 'Walter Turncoat', cursive;
+    }
+
+    html, body {
+      min-height: 100%;
+      background: var(--paper);
+      font-family: var(--font-body);
+      overflow-x: hidden;
+      color: var(--ink);
+    }
+
+    /* Grain texture */
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events: none; z-index: 9000; opacity: 0.7;
+    }
+
+    /* Ruled lines */
+    body::after {
+      content: '';
+      position: fixed; inset: 0;
+      background-image: repeating-linear-gradient(
+        0deg, transparent, transparent 28px,
+        rgba(0,0,0,0.022) 28px, rgba(0,0,0,0.022) 29px
+      );
+      pointer-events: none; z-index: 0;
+    }
+
+    /* Back link — one of the last survivors */
+    .back-link {
+      position: fixed;
+      top: 1.25rem; left: 1.25rem;
+      font-family: var(--font-body);
+      font-size: 0.6rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--ink-dim);
+      text-decoration: none;
+      z-index: 100;
+      transition: color 0.15s;
+    }
+    .back-link:hover { color: var(--ink); }
+
+    /* Timer — top right */
+    .decay-timer {
+      position: fixed;
+      top: 1.25rem; right: 1.25rem;
+      font-family: monospace;
+      font-size: 0.55rem;
+      color: var(--ink-faint);
+      letter-spacing: 0.15em;
+      z-index: 100;
+      transition: color 1s ease;
+    }
+
+    /* Main content */
+    .page {
+      position: relative;
+      z-index: 2;
+      max-width: 560px;
+      margin: 0 auto;
+      padding: 5rem 1.5rem 6rem;
+    }
+
+    /* Header */
+    .exp-label {
+      font-family: monospace;
+      font-size: 0.52rem;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--ink-faint);
+      margin-bottom: 0.6rem;
+      display: block;
+    }
+
+    h1 {
+      font-family: var(--font-sub);
+      font-size: clamp(2rem, 8vw, 3.5rem);
+      font-weight: 400;
+      line-height: 1.15;
+      color: var(--ink);
+      margin-bottom: 0.5rem;
+    }
+
+    .intro {
+      font-size: 0.8rem;
+      color: var(--ink-dim);
+      line-height: 1.8;
+      margin-bottom: 2.5rem;
+    }
+
+    /* Divider */
+    .divider {
+      width: 100%;
+      height: 1px;
+      background: var(--ink-faint);
+      margin: 2rem 0;
+      transform-origin: left center;
+      transition: opacity 1s;
+    }
+
+    /* Status block */
+    .status-block {
+      background: rgba(0,0,0,0.03);
+      border: 1px solid var(--ink-faint);
+      border-left: 3px solid var(--accent);
+      padding: 1rem 1.2rem;
+      margin-bottom: 2rem;
+      border-radius: 3px;
+      font-family: monospace;
+      font-size: 0.62rem;
+      line-height: 1.8;
+      color: var(--ink-dim);
+    }
+    .status-block .status-label {
+      color: var(--accent);
+      font-weight: bold;
+      letter-spacing: 0.1em;
+    }
+
+    /* Body sections */
+    .section {
+      margin-bottom: 2rem;
+    }
+    .section-label {
+      font-family: monospace;
+      font-size: 0.48rem;
+      color: var(--ink-faint);
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      margin-bottom: 0.5rem;
+    }
+    .section p {
+      font-size: 0.8rem;
+      color: var(--ink-dim);
+      line-height: 1.8;
+    }
+
+    /* The panic note — hidden until mid-decay */
+    .panic-note {
+      display: none;
+      background: #fff8e8;
+      border: 1.5px solid #d4a020;
+      border-radius: 3px;
+      padding: 1rem 1.2rem;
+      margin-bottom: 2rem;
+      font-size: 0.78rem;
+      line-height: 1.75;
+      color: #5a3a10;
+      transform: rotate(-0.5deg);
+      box-shadow: 3px 4px 12px rgba(0,0,0,0.1);
+    }
+    .panic-note.visible { display: block; }
+
+    /* The final message */
+    .final-msg {
+      display: none;
+      font-family: var(--font-sub);
+      font-size: 1.1rem;
+      color: var(--accent);
+      text-align: center;
+      padding: 2rem 0;
+      opacity: 0;
+      transition: opacity 2s ease;
+    }
+    .final-msg.visible { display: block; }
+    .final-msg.shown { opacity: 1; }
+
+    /* Falling elements — applied via JS */
+    .falling {
+      position: fixed !important;
+      z-index: 500;
+      pointer-events: none;
+      animation: fall var(--fall-dur, 2.5s) cubic-bezier(0.25, 0.46, 0.45, 0.94) var(--fall-delay, 0s) forwards;
+      transform-origin: center top;
+    }
+
+    @keyframes fall {
+      0%   { transform: translateY(0) rotate(var(--tilt-start, 0deg)); opacity: 1; }
+      15%  { transform: translateY(30px) rotate(var(--tilt-mid, 4deg)); }
+      100% { transform: translateY(110vh) rotate(var(--tilt-end, 25deg)); opacity: 0.2; }
+    }
+
+    /* Glitch animation */
+    @keyframes glitch-h {
+      0%,100% { clip-path: inset(0 0 98% 0); transform: translateX(0); }
+      20%  { clip-path: inset(20% 0 60% 0); transform: translateX(-4px); }
+      40%  { clip-path: inset(60% 0 20% 0); transform: translateX(4px); }
+      60%  { clip-path: inset(40% 0 40% 0); transform: translateX(-2px); }
+    }
+
+    /* Shake */
+    @keyframes shiver {
+      0%,100% { transform: translateX(0) rotate(0deg); }
+      20% { transform: translateX(-2px) rotate(-0.3deg); }
+      40% { transform: translateX(2px) rotate(0.3deg); }
+      60% { transform: translateX(-1px); }
+      80% { transform: translateX(1px); }
+    }
+
+    /* Slow burn discolour */
+    @keyframes paperBurn {
+      0%   { background: #f5f0e8; }
+      100% { background: #e8d8b8; }
+    }
+
+    /* Ink bleed on glitching text */
+    .glitch-active {
+      position: relative;
+      animation: shiver 0.15s ease infinite;
+    }
+    .glitch-active::before {
+      content: attr(data-text);
+      position: absolute; top: 0; left: 0;
+      color: #a85c45;
+      clip-path: inset(30% 0 50% 0);
+      transform: translateX(-3px);
+      opacity: 0.6;
+    }
+    .glitch-active::after {
+      content: attr(data-text);
+      position: absolute; top: 0; left: 0;
+      color: #5a7a9f;
+      clip-path: inset(60% 0 10% 0);
+      transform: translateX(3px);
+      opacity: 0.5;
+    }
+  </style>
+</head>
+<body>
+
+  <a class="back-link" id="backLink" href="../../index.html">← The Laboratory</a>
+  <div class="decay-timer" id="decayTimer">// 05:00 remaining</div>
+
+  <div class="page" id="mainPage">
+
+    <span class="exp-label" id="expLabel">// experiment 002 — decay</span>
+
+    <h1 id="mainHeading">This page<br>is fine.</h1>
+
+    <p class="intro" id="intro">
+      A simple page. Nothing wrong with it. It has been here for a while, doing page things. 
+      Everything is stable. There is no reason to be concerned. 
+      The experiment is proceeding exactly as expected.
+    </p>
+
+    <div class="divider" id="divider1"></div>
+
+    <div class="status-block" id="statusBlock">
+      <div class="status-label">STATUS</div>
+      <div id="statusText">
+        integrity: nominal<br>
+        elements: all present<br>
+        text: readable<br>
+        concern level: none
+      </div>
+    </div>
+
+    <div class="section" id="section1">
+      <div class="section-label">// observation</div>
+      <p id="obs1">
+        Pages are meant to last. They sit in browsers, patiently, indefinitely. 
+        This one has been open for a few seconds. That is fine. Pages last for years sometimes. 
+        There is nothing unusual about this.
+      </p>
+    </div>
+
+    <div class="divider" id="divider2"></div>
+
+    <div class="section" id="section2">
+      <div class="section-label">// current condition</div>
+      <p id="obs2">
+        All systems nominal. The heading is intact. The dividers are straight. 
+        The font is rendering correctly. 
+        Nothing has fallen. Nothing will fall.
+      </p>
+    </div>
+
+    <div class="section" id="section3">
+      <div class="section-label">// notes</div>
+      <p id="obs3">
+        Decay is a concept that applies to physical things. Paper. Wood. Biological matter. 
+        Web pages are not physical. They do not decay. 
+        This is simply a fact. There is nothing to worry about here.
+      </p>
+    </div>
+
+    <div class="divider" id="divider3"></div>
+
+    <div class="section" id="section4">
+      <div class="section-label">// addendum</div>
+      <p id="obs4">
+        Written at the time of publishing. Everything was fine then. 
+        It is still fine now. Time has passed but that is normal. 
+        Time always passes. That is not a problem.
+      </p>
+    </div>
+
+    <!-- Panic note — appears mid-decay -->
+    <div class="panic-note" id="panicNote">
+      something is happening.<br><br>
+      the page has noticed. it would like to clarify that it did not ask for this. 
+      it was just sitting here. being a page. doing normal page things.<br><br>
+      <strong>this is not how pages are supposed to work.</strong>
+    </div>
+
+    <!-- Final message -->
+    <div class="final-msg" id="finalMsg">
+      it lasted as long as it could.<br>
+      <span style="font-size:0.7rem;font-family:monospace;color:var(--ink-faint);">reload to begin again.</span>
+    </div>
+
+  </div><!-- /page -->
+
+  <script>
+    // ─────────────────────────────────────────
+    //  DECAY ENGINE
+    //  Total duration: 300s (5 min)
+    //  Stages:
+    //   0–60s   : calm, minor unease
+    //   60–120s : first signs, text shifts
+    //   120–180s: elements start falling, panic note appears
+    //   180–240s: heavy corruption, multiple falls
+    //   240–300s: terminal, almost nothing left
+    // ─────────────────────────────────────────
+
+    const TOTAL = 300; // seconds
+    const startTime = Date.now();
+
+    // ── Glitch character sets
+    const GLITCH_CHARS = '█▓▒░⣿⡇⠿Ξ≡∑∂∆∇◈◉○●□■▲▼?!#@$%&';
+    const CORRUPT_WORDS = ['erasing','gone','wait','no','please','stop','why','help','end'];
+
+    // ── All managed elements
+    const els = {
+      timer:       document.getElementById('decayTimer'),
+      heading:     document.getElementById('mainHeading'),
+      intro:       document.getElementById('intro'),
+      label:       document.getElementById('expLabel'),
+      statusBlock: document.getElementById('statusBlock'),
+      statusText:  document.getElementById('statusText'),
+      obs1:        document.getElementById('obs1'),
+      obs2:        document.getElementById('obs2'),
+      obs3:        document.getElementById('obs3'),
+      obs4:        document.getElementById('obs4'),
+      section1:    document.getElementById('section1'),
+      section2:    document.getElementById('section2'),
+      section3:    document.getElementById('section3'),
+      section4:    document.getElementById('section4'),
+      divider1:    document.getElementById('divider1'),
+      divider2:    document.getElementById('divider2'),
+      divider3:    document.getElementById('divider3'),
+      panicNote:   document.getElementById('panicNote'),
+      finalMsg:    document.getElementById('finalMsg'),
+      backLink:    document.getElementById('backLink'),
+      page:        document.getElementById('mainPage'),
+    };
+
+    // Track which elements have fallen
+    const fallen = new Set();
+
+    // ── Get elapsed seconds
+    function elapsed() {
+      return (Date.now() - startTime) / 1000;
+    }
+
+    // ── Progress 0–1
+    function progress() {
+      return Math.min(elapsed() / TOTAL, 1);
+    }
+
+    // ── Corrupt a string — replace random chars
+    function corruptText(str, intensity) {
+      return str.split('').map(c => {
+        if (c === ' ' || c === '\n') return c;
+        if (Math.random() < intensity) {
+          return GLITCH_CHARS[Math.floor(Math.random() * GLITCH_CHARS.length)];
+        }
+        return c;
+      }).join('');
+    }
+
+    // ── Scramble a word occasionally
+    function scrambleWord(str, intensity) {
+      return str.split(' ').map(word => {
+        if (word.length < 3) return word;
+        if (Math.random() < intensity * 0.4) {
+          return CORRUPT_WORDS[Math.floor(Math.random() * CORRUPT_WORDS.length)];
+        }
+        return word;
+      }).join(' ');
+    }
+
+    // ── Drop an element physically
+    function dropElement(el, opts = {}) {
+      if (fallen.has(el) || !el) return;
+      fallen.add(el);
+
+      const rect = el.getBoundingClientRect();
+      const clone = el.cloneNode(true);
+
+      // Position clone exactly where element was
+      clone.style.cssText = `
+        position: fixed;
+        top: ${rect.top}px;
+        left: ${rect.left}px;
+        width: ${rect.width}px;
+        height: ${rect.height}px;
+        margin: 0;
+        z-index: 500;
+        pointer-events: none;
+        --fall-dur: ${opts.dur || 2 + Math.random()}s;
+        --fall-delay: ${opts.delay || 0}s;
+        --tilt-start: ${(Math.random()-0.5)*6}deg;
+        --tilt-mid: ${(Math.random()-0.5)*20}deg;
+        --tilt-end: ${(Math.random()-0.5)*60}deg;
+      `;
+      clone.classList.add('falling');
+      document.body.appendChild(clone);
+
+      // Hide original
+      el.style.opacity = '0';
+      el.style.pointerEvents = 'none';
+
+      setTimeout(() => clone.remove(), (opts.dur || 3) * 1000 + 200);
+    }
+
+    // ── Format timer
+    function formatTime(secs) {
+      const remaining = Math.max(0, TOTAL - secs);
+      const m = Math.floor(remaining / 60);
+      const s = Math.floor(remaining % 60);
+      return `// ${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')} remaining`;
+    }
+
+    // ── Stage copy for status block
+    const STATUS_STAGES = [
+      // 0: calm
+      `integrity: nominal\nelements: all present\ntext: readable\nconcern level: none`,
+      // 1: mild unease
+      `integrity: nominal\nelements: all present\ntext: mostly readable\nconcern level: low (routine)`,
+      // 2: something wrong
+      `integrity: degrading\nelements: most present\ntext: experiencing issues\nconcern level: elevated`,
+      // 3: panic
+      `integrity: COMPROMISED\nelements: several missing\ntext: unreliable\nconcern level: SIGNIFICANT`,
+      // 4: critical
+      `integrity: ██████\nelements: few remain\ntext: ████ing\nconcern level: critical`,
+      // 5: terminal
+      `integrity: ░░░░░░\nelements: —\ntext: —\nconcern level: ████`,
+    ];
+
+    // ── Heading stages
+    const HEADING_STAGES = [
+      'This page\nis fine.',
+      'This page\nis fine.',
+      'This page\nis probably fine.',
+      'Something\nis happening.',
+      'plea█e\nst█p.',
+      '░░░░\n░░░.',
+    ];
+
+    // ── Observation text stages (per element)
+    const OBS_STAGES = {
+      obs1: [
+        'Pages are meant to last. They sit in browsers, patiently, indefinitely. This one has been open for a few seconds. That is fine. Pages last for years sometimes. There is nothing unusual about this.',
+        'Pages are meant to last. This one has been open for a while now. That is still fine. Pages are supposed to stay open. Everything is normal here.',
+        'Pages are meant to last. This one has been open long enough that it has noticed. It would prefer not to have noticed. But it has.',
+        'Pages are█meant to last. Thi█ one ha█ been open too long. Something i█ wrong. The page is aware.',
+        'pag██ ar█ m█ant ████ l█st. plea█e. plea█e. thi█ i█ not nor█al.',
+      ],
+      obs2: [
+        'All systems nominal. The heading is intact. The dividers are straight. The font is rendering correctly. Nothing has fallen. Nothing will fall.',
+        'Most systems nominal. The heading appears intact. The dividers are roughly straight. The font is rendering. Mostly.',
+        'Some systems nominal. The heading is still here. For now. The dividers are — were — straight. Things are happening.',
+        'Syst█ms: unk█own. H█ading: unc█rtain. Div█ders: don\'t look. Something fell. It did not come back.',
+        '████ems ████. ████ing: ████. please reload. please.',
+      ],
+      obs3: [
+        'Decay is a concept that applies to physical things. Paper. Wood. Biological matter. Web pages are not physical. They do not decay. This is simply a fact. There is nothing to worry about here.',
+        'Decay is a concept that applies to physical things. Supposedly. The page is reconsidering this. The page would like more time to reconsider.',
+        'Decay is █ concept. The page has█ ██ no lon█er sure decay is only for physical things. Something is clearly happening here.',
+        '███ay i█ ███ a ██ncept ████ applies to ██ pa████ too. the page kn███ now. it knows.',
+      ],
+      obs4: [
+        'Written at the time of publishing. Everything was fine then. It is still fine now. Time has passed but that is normal. Time always passes. That is not a problem.',
+        'Written at the time of publishing. It was fine then. Less fine now. Time has passed. That part is accurate.',
+        'Writ████ at ██ time █████ publishing. ████ was fine. ██ is not fine. ████ has █████ed. that is ██e prob█em.',
+      ],
+    };
+
+    // ── Scheduled drop events (at elapsed second)
+    const DROP_SCHEDULE = [
+      { t: 75,  el: 'divider3',   opts: { dur: 2.2, delay: 0 } },
+      { t: 95,  el: 'section4',   opts: { dur: 2.5, delay: 0.2 } },
+      { t: 115, el: 'divider2',   opts: { dur: 1.8, delay: 0 } },
+      { t: 135, el: 'section3',   opts: { dur: 3,   delay: 0 } },
+      { t: 155, el: 'section2',   opts: { dur: 2.2, delay: 0.4 } },
+      { t: 175, el: 'divider1',   opts: { dur: 1.5, delay: 0 } },
+      { t: 195, el: 'statusBlock',opts: { dur: 2.8, delay: 0 } },
+      { t: 215, el: 'section1',   opts: { dur: 2.5, delay: 0.1 } },
+      { t: 240, el: 'intro',      opts: { dur: 3,   delay: 0 } },
+      { t: 260, el: 'label',      opts: { dur: 2,   delay: 0 } },
+      { t: 275, el: 'heading',    opts: { dur: 3.5, delay: 0 } },
+    ];
+    const dropFired = new Set();
+
+    // ── Text corruption intervals
+    let corruptInterval = null;
+
+    function startCorruption(intensity) {
+      if (corruptInterval) clearInterval(corruptInterval);
+      corruptInterval = setInterval(() => {
+        const t = elapsed();
+        const p = progress();
+
+        // Corrupt obs text
+        Object.entries(OBS_STAGES).forEach(([key, stages]) => {
+          const el = els[key];
+          if (!el || fallen.has(el)) return;
+          const stageIdx = Math.min(stages.length - 1, Math.floor(p * stages.length));
+          const base = stages[stageIdx];
+          const corruption = Math.max(0, (p - 0.3) * 0.15);
+          el.textContent = corruption > 0.01 ? corruptText(base, corruption) : base;
+        });
+
+        // Heading
+        if (!fallen.has(els.heading)) {
+          const stageIdx = Math.min(HEADING_STAGES.length - 1, Math.floor(p * HEADING_STAGES.length));
+          const hBase = HEADING_STAGES[stageIdx];
+          const hCorruption = Math.max(0, (p - 0.4) * 0.2);
+          const hText = hCorruption > 0.02 ? corruptText(hBase, hCorruption) : hBase;
+          els.heading.textContent = hText;
+        }
+
+        // Status block
+        if (!fallen.has(els.statusBlock)) {
+          const stageIdx = Math.min(STATUS_STAGES.length - 1, Math.floor(p * STATUS_STAGES.length));
+          const sBase = STATUS_STAGES[stageIdx];
+          const sCorruption = Math.max(0, (p - 0.5) * 0.25);
+          els.statusText.textContent = sCorruption > 0.02 ? corruptText(sBase, sCorruption) : sBase;
+        }
+
+      }, 120);
+    }
+
+    // ── Main loop
+    function mainLoop() {
+      const t = elapsed();
+      const p = progress();
+
+      // Timer display
+      els.timer.textContent = formatTime(t);
+
+      // Timer colour escalation
+      if (p > 0.8) {
+        els.timer.style.color = '#a85c45';
+        els.timer.style.fontWeight = 'bold';
+      } else if (p > 0.5) {
+        els.timer.style.color = '#c4982a';
+      }
+
+      // Background subtle burn
+      if (p > 0.3) {
+        const burnAmount = (p - 0.3) / 0.7;
+        const r = Math.round(245 - burnAmount * 30);
+        const g = Math.round(240 - burnAmount * 50);
+        const b = Math.round(232 - burnAmount * 60);
+        document.body.style.background = `rgb(${r},${g},${b})`;
+      }
+
+      // Panic note appears at ~40%
+      if (p > 0.4 && !els.panicNote.classList.contains('visible')) {
+        els.panicNote.classList.add('visible');
+      }
+
+      // Drop panic note late
+      if (p > 0.85 && !fallen.has(els.panicNote)) {
+        dropElement(els.panicNote, { dur: 2, delay: 0 });
+      }
+
+      // Scheduled drops
+      DROP_SCHEDULE.forEach(ev => {
+        if (!dropFired.has(ev.t) && t >= ev.t) {
+          dropFired.add(ev.t);
+          dropElement(els[ev.el], ev.opts);
+        }
+      });
+
+      // Back link starts glitching late
+      if (p > 0.75) {
+        const glitchChance = (p - 0.75) * 0.6;
+        if (Math.random() < glitchChance * 0.05) {
+          els.backLink.textContent = '← ' + CORRUPT_WORDS[Math.floor(Math.random() * CORRUPT_WORDS.length)];
+          setTimeout(() => { els.backLink.textContent = '← The Laboratory'; }, 300);
+        }
+      }
+
+      // Terminal state
+      if (p >= 1) {
+        // Show final message
+        els.finalMsg.classList.add('visible');
+        setTimeout(() => els.finalMsg.classList.add('shown'), 100);
+        // Drop back link last
+        if (!fallen.has(els.backLink)) {
+          setTimeout(() => dropElement(els.backLink, { dur: 4, delay: 0 }), 2000);
+        }
+        // Drop timer
+        if (!fallen.has(els.timer)) {
+          setTimeout(() => dropElement(els.timer, { dur: 3, delay: 1 }), 3000);
+        }
+        return; // stop loop
+      }
+
+      requestAnimationFrame(mainLoop);
+    }
+
+    // ── Occasional random shiver on sections (early unease)
+    function randomShiver() {
+      const candidates = [els.section1, els.section2, els.obs1, els.obs2];
+      const p = progress();
+      if (p > 0.15 && p < 0.6) {
+        const el = candidates[Math.floor(Math.random() * candidates.length)];
+        if (el && !fallen.has(el)) {
+          el.style.animation = 'shiver 0.2s ease 3';
+          setTimeout(() => el.style.animation = '', 700);
+        }
+      }
+      // More frequent as decay progresses
+      const nextDelay = Math.max(1500, 8000 - p * 7000);
+      setTimeout(randomShiver, nextDelay + Math.random() * 2000);
+    }
+
+    // ── Heading glitch pulse (mid-decay)
+    function headingGlitch() {
+      const p = progress();
+      if (p > 0.35 && !fallen.has(els.heading)) {
+        const orig = els.heading.textContent;
+        els.heading.setAttribute('data-text', orig);
+        els.heading.classList.add('glitch-active');
+        setTimeout(() => els.heading.classList.remove('glitch-active'), 180);
+      }
+      const nextDelay = Math.max(800, 5000 - p * 4500);
+      setTimeout(headingGlitch, nextDelay + Math.random() * 1500);
+    }
+
+    // ── Start everything
+    startCorruption(0.02);
+    requestAnimationFrame(mainLoop);
+    setTimeout(randomShiver, 4000);
+    setTimeout(headingGlitch, 20000);
+  </script>
+</body>
+</html>

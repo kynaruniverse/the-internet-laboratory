@@ -396,149 +396,132 @@
     }, { threshold: 0.3 });
     swingObserver.observe(document.querySelector('.about-strip-wrapper'));
 
-    // 4. COMPLEX CANVAS SAND ENGINE
+    // 4. CIRCULAR BUFFER SAND ENGINE (WITH COLLAPSE LOGIC)
     const canvas = document.getElementById('heroCanvas');
     const ctx = canvas.getContext('2d');
     const hero = document.getElementById('labHero');
     
     const COLOURS = ['#a85c45','#b8913a','#c4703a','#9a4f38','#d4a445','#b06840'];
     const G = 2;
-    const SPAWN = 2;
-    const MAX = 4000;
-    const ZONE = 50;
-    const GRAVITY = 0.15;
-    const FADE = 0.004;
+    const MAX = 3000; 
+    const GRAVITY = 0.25;
 
-    let floor = [], falling = [], settled = [], columnGrains = [];
-    let targetX = 0, showerX = 0, W = 0, H = 0;
-    let rafId = null;
+    let W, H;
+    let floor = []; 
+    let grains = []; 
+    let targetX = 0, showerX = 0;
 
     function initCanvas() {
-      if (!canvas || !hero) return;
-      const oldW = W;
       W = hero.offsetWidth;
       H = hero.offsetHeight;
       canvas.width = W;
       canvas.height = H;
-      targetX = W / 2;
-      showerX = W / 2;
-
-      if (floor.length === 0 || oldW !== W) {
-        floor = new Array(W).fill(H);
-        columnGrains = Array.from({ length: W }, () => []);
-        const oldSettled = [...settled];
-        settled = [];
-        oldSettled.forEach(s => {
-          const sc = Math.round(s.x);
-          if (sc >= 0 && sc < W) {
-            settled.push(s);
-            columnGrains[sc].push(s);
-            floor[sc] = Math.min(floor[sc], s.y);
-          }
-        });
-      }
+      floor = new Array(W).fill(H);
+      grains = [];
     }
-    
     window.addEventListener('resize', initCanvas);
     initCanvas();
 
     hero.addEventListener('mousemove', e => {
       const r = hero.getBoundingClientRect();
-      if (e.clientX >= r.left && e.clientX <= r.right) targetX = e.clientX - r.left;
+      targetX = e.clientX - r.left;
     });
 
     window.addEventListener('deviceorientation', e => {
-      if (e.gamma != null && W > 0) {
+      if (e.gamma != null) {
         const norm = (Math.max(-25, Math.min(25, e.gamma)) + 25) / 50;
         targetX = norm * W;
       }
     });
 
-    function spawn() {
-      showerX += (targetX - showerX) * 0.06;
-      const x = Math.max(0, Math.min(W - 1, showerX - ZONE/2 + Math.random() * ZONE));
-      falling.push({ x, y: 0, vy: 0.8 + Math.random() * 0.6, color: COLOURS[Math.floor(Math.random() * COLOURS.length)] });
-    }
-
     function tick() {
-      rafId = requestAnimationFrame(tick);
-      if (!ctx || W === 0) return;
+      requestAnimationFrame(tick);
       ctx.clearRect(0, 0, W, H);
 
-      for (let s = 0; s < SPAWN; s++) spawn();
+      // 1. SPAWN & RECYCLE
+      showerX += (targetX - showerX) * 0.1;
+      if (grains.length >= MAX) {
+        let old = grains.shift();
+        if (old.settled) {
+          let col = Math.round(old.x);
+          floor[col] = Math.min(H, floor[col] + G);
+        }
+      }
+      grains.push({ 
+        x: Math.max(0, Math.min(W - G, showerX + (Math.random()-0.5)*40)), 
+        y: 0, vy: 1, 
+        color: COLOURS[Math.floor(Math.random() * COLOURS.length)],
+        settled: false 
+      });
 
-      for (let i = falling.length - 1; i >= 0; i--) {
-        const g = falling[i];
-        g.vy += GRAVITY;
-        g.y += g.vy;
-        g.x = Math.max(0, Math.min(W - 1, g.x));
-        const col = Math.round(g.x);
-        const fl = floor[col] - G;
-
-        if (g.y >= fl) {
-          const lCol = Math.max(0, col - G);
-          const rCol = Math.min(W - 1, col + G);
-          const canL = floor[lCol] - G > fl + 1 && lCol !== col;
-          const canR = floor[rCol] - G > fl + 1 && rCol !== col;
-
-          if (canL && canR) {
-            if (floor[lCol] > floor[rCol]) g.x -= G; else g.x += G;
-            g.vy *= 0.3;
-          } else if (canL) { g.x -= G; g.vy *= 0.3; }
-          else if (canR) { g.x += G; g.vy *= 0.3; }
-          else {
-            g.y = fl;
-            const sc = Math.round(g.x);
-            floor[sc] = Math.min(floor[sc], g.y);
-            if (sc > 0) floor[sc-1] = Math.min(floor[sc-1], g.y + 1);
-            if (sc < W-1) floor[sc+1] = Math.min(floor[sc+1], g.y + 1);
-            
-            const settledGrain = { x: g.x, y: g.y, color: g.color, alpha: 1, fading: false };
-            settled.push(settledGrain);
-            columnGrains[sc].push(settledGrain);
-            
-            falling.splice(i, 1);
-            if (settled.length > MAX) settled[0].fading = true;
-          }
+      // 2. REBUILD TRUE FLOOR from real grain positions — O(n), no drift possible
+      floor.fill(H);
+      for (let i = 0; i < grains.length; i++) {
+        if (grains[i].settled) {
+          const x = grains[i].x;
+          if (grains[i].y < floor[x]) floor[x] = grains[i].y;
         }
       }
 
-      ctx.shadowBlur = 0;
-      for (let i = settled.length - 1; i >= 0; i--) {
-        const s = settled[i];
-        if (s.fading) {
-          s.alpha -= FADE;
-          if (s.alpha <= 0) {
-            const sc = Math.round(s.x);
-            columnGrains[sc] = columnGrains[sc].filter(item => item !== s);
-            let nf = H;
-            for (let j = 0; j < columnGrains[sc].length; j++) {
-              if (!columnGrains[sc][j].fading && columnGrains[sc][j].y < nf) {
-                nf = columnGrains[sc][j].y;
+      // 3. PHYSICS & DRAW
+      let sortedGrains = [...grains].sort((a, b) => b.y - a.y);
+
+      for (let i = 0; i < sortedGrains.length; i++) {
+        let g = sortedGrains[i];
+        let col = Math.round(g.x);
+        
+        if (!g.settled) {
+          g.vy += GRAVITY;
+          g.y += g.vy;
+          
+          // Collision: Check a wider footprint (G)
+          if (g.y >= floor[col] - G) {
+            let l = Math.max(0, col - G);
+            let r = Math.min(W - G, col + G);
+            
+            // If the ground to the side is significantly lower (emptier), slide there.
+            // Using + 1 ensures we are always finding the absolute lowest point.
+            if (floor[l] > floor[col] + 1) { 
+              g.x = l; 
+            } else if (floor[r] > floor[col] + 1) { 
+              g.x = r; 
+            } else {
+              g.x = col;
+              g.y = floor[col] - G;
+              g.settled = true;
+              floor[col] = g.y; // update immediately so grains settling this same frame see it 
+            }
+          }
+        } else {
+          // Every frame: check if the spot directly below this grain is empty
+          // Scan real grains for anything sitting at g.y + G in same column
+          let supported = false;
+          if (g.y + G >= H) {
+            supported = true; // resting on canvas floor
+          } else {
+            for (let j = 0; j < grains.length; j++) {
+              if (grains[j] !== g && grains[j].settled 
+                && grains[j].x === g.x 
+                && grains[j].y === g.y + G) {
+                supported = true;
+                break;
               }
             }
-            floor[sc] = nf;
-            settled.splice(i, 1);
-            continue;
+          }
+          if (!supported) {
+            g.settled = false;
+            g.vy = 0;
           }
         }
-        ctx.globalAlpha = s.alpha;
-        ctx.fillStyle = s.color;
-        ctx.fillRect(s.x, s.y, G, G);
-      }
-
-      ctx.shadowBlur = 5;
-      ctx.globalAlpha = 0.95;
-      for (const g of falling) {
+        
         ctx.fillStyle = g.color;
-        ctx.shadowColor = g.color;
         ctx.fillRect(g.x, g.y, G, G);
       }
-      ctx.shadowBlur = 0;
-      ctx.globalAlpha = 1;
     }
-    
+
     tick();
   </script>
+
+
 </body>
 </html>
